@@ -11,6 +11,7 @@ obj
 .theos
 .DS_Store
 
+Packages
 *.xcworkspace
 # End of https://www.toptal.com/developers/gitignore/api/theos-tweak
 
