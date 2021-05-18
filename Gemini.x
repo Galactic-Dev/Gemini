@@ -1,19 +1,11 @@
 #import "Gemini.h"
 
 NSUInteger contentOrientation;
-NSMutableArray<NCNotificationStructuredSectionList *> *notifLists;
 NCNotificationStructuredListViewController *notifVC;
-UIView *notifSuperview;
 NSMutableArray *removedRequests;
 SBMainSwitcherViewController *mainSwitcherVC;
 NSMutableArray<SBFluidSwitcherItemContainerHeaderView *> *headerViews;
-UIViewController *notifParentVC;
-CSCombinedListViewController *combinedListVC;
-NSMutableArray *adjunctListViews;
-CSNotificationAdjunctListViewController *adjunctListViewController;
 long long environmentMode;
-CGFloat topValue;
-NSMutableArray *allNotificationRequests;
 
 //sbappswitcherscrollview stuff
 CGPoint lastOffset;
@@ -24,9 +16,33 @@ BOOL isScrollingFast;
 BOOL isEnabled;
 BOOL reduceAnimations;
 
+%group Main
+%hook CCUIModuleCollectionViewController
+-(void)dismissExpandedModuleAnimated:(BOOL)arg1 completion:(id)arg2 {
+    %orig(NO, arg2);
+}
+-(void)dismissPresentedContentAnimated:(BOOL)arg1 completion:(id)arg2 {
+    %orig(NO, arg2);
+}
+-(void)addChildViewController:(UIViewController *)viewController {
+    %orig;
+    [viewController.childViewControllers[0] viewWillAppear:NO];
+}
+%end
+
+%hook AXNManager
+-(void)setClvc:(id)arg1 {
+    if(![self valueForKey:@"_clvc"]) {
+        %orig;
+    }
+}
+%end
+
 %hook SBMainSwitcherViewController
 %property (nonatomic, assign) BOOL isSmall;
-%property (nonatomic, retain) UIView *geminiScrollView;
+%property (strong, nonatomic) CCUIModuleCollectionViewController *moduleViewController;
+%property (strong, nonatomic) NCNotificationStructuredListViewController *structuredListViewController;
+%property (strong, nonatomic) UIView *geminiAdditionalView;
 -(void)viewDidLoad {
   %orig;
   mainSwitcherVC = self;
@@ -49,40 +65,104 @@ BOOL reduceAnimations;
   %orig;
   contentOrientation = arg1;
 }
+%new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
+    AXNManager *axonManager = [%c(AXNManager) sharedInstance];
 
+    
+    NSMutableArray *requests = [NSMutableArray array];
+    NSMutableArray *oldRequests = [NSMutableArray array];
+    
+    for(NSString *identifier in axonManager.names.allKeys) {
+        [requests addObjectsFromArray:[axonManager requestsForBundleIdentifier:identifier]];
+    }
+
+    for(NCNotificationStructuredSectionList *sectionList in self.structuredListViewController.masterList.notificationSections) {
+        [oldRequests addObjectsFromArray:[sectionList allNotificationRequests]];
+    }
+    for(NCNotificationStructuredSectionList *sectionList in notifVC.masterList.notificationSections) {
+        [requests addObjectsFromArray:[sectionList allNotificationRequests]];
+    }
+
+    for(id request in oldRequests) {
+        if(![requests containsObject:request]) {
+            [self.structuredListViewController.masterList.notificationSections[0] removeNotificationRequest:request];
+        }
+    }
+    
+    for(int i = 0; i < requests.count; i++) {
+        [self.structuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
+    }
+    self.structuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
+}
 %new
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
   if(pinchGesture.scale <= 0.75 && !self.isSmall && contentOrientation == 1 && environmentMode == 2) {
-    [mainSwitcherVC addChildViewController:notifVC];
+      if(self.childViewControllers.count < 2) {
+          /*
+          SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
+          CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
+          self.moduleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
+         [mainSwitcherVC addChildViewController:self.moduleViewController];
+          UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.moduleViewController.view.frame];
+          [scrollView addSubview:self.moduleViewController.view];
+          scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+          [mainSwitcherVC.view addSubview:scrollView];
+          self.moduleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+          [scrollView.widthAnchor constraintEqualToConstant:self.moduleViewController.view.frame.size.width].active = YES;
+          [scrollView.heightAnchor constraintEqualToConstant:400].active = YES;
+          [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
+          [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
+          [self.moduleViewController.view.heightAnchor constraintEqualToConstant:1024].active = YES;
+          [self.moduleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor constant:60].active = YES;
+          scrollView.contentSize = CGSizeMake(scrollView.frame.size.width, 1024);
+           self.geminiAdditionalView = scrollView;
+           */
+          
+          
+          self.structuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
+
+
+          [self addChildViewController:self.structuredListViewController];
+          [self.view addSubview:self.structuredListViewController.view];
+          self.structuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+          [self.structuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
+          [self.structuredListViewController.view.heightAnchor constraintEqualToConstant:self.structuredListViewController.view.frame.size.height].active = YES;
+          [self.structuredListViewController.view.widthAnchor constraintEqualToConstant:self.structuredListViewController.view.frame.size.width].active = YES;
+          self.geminiAdditionalView = self.structuredListViewController.view;
+          
+          self.structuredListViewController.delegate = notifVC.delegate;
+          self.structuredListViewController.deviceAuthenticated = YES;
+          self.geminiAdditionalView.clipsToBounds = YES;
+          
+          [self insertNotificationsForBundleIdentifier:nil];
+        }
+      
+      
+      for(UIViewController *childViewController in self.moduleViewController.childViewControllers) {
+          UIViewController *childChildViewController = childViewController.childViewControllers[0];
+          [childChildViewController viewWillAppear:NO];
+          if([childChildViewController respondsToSelector:@selector(setState:)]) {
+              [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
+          }
+      }
+
+      
+      
     [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
       self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
       self.view.transform = CGAffineTransformMakeScale(.75, .75);
           [notifVC revealNotificationHistory:YES animated:NO];
-          for(int i = 0; i < [notifLists count]; i++) {
-            NCNotificationStructuredSectionList *notifList = notifLists[i];
+          for(int i = 0; i < [notifVC.masterList.notificationSections count]; i++) {
+            NCNotificationStructuredSectionList *notifList = notifVC.masterList.notificationSections[i];
             [notifList.sectionListView setRevealed:YES];
 
             notifList.sectionListView.frame = CGRectMake(notifList.sectionListView.frame.origin.x, notifList.sectionListView.frame.origin.y /*+ 643*/, notifList.sectionListView.frame.size.width, notifList.sectionListView.frame.size.height);
-              self.geminiScrollView.userInteractionEnabled = YES;
-              [mainSwitcherVC.view addSubview:notifVC.view];
-              notifVC.masterListView.clipsToBounds = YES;
-              for(UIView *subview in notifVC.masterListView.subviews){
-                if(![subview isKindOfClass:%c(NCNotificationListView)]) {
-                  if([subview isKindOfClass:%c(CSAdjunctListView)]){
-                    if(![adjunctListViews containsObject:subview]) [adjunctListViews addObject:subview];
-                    [subview removeFromSuperview];
-                  }
-                  [subview removeFromSuperview];
-                }
-              }
-              notifVC.view.translatesAutoresizingMaskIntoConstraints = NO;
-              notifVC.view.transform = CGAffineTransformMakeScale(1.25, 1.25);
-              [notifVC.view.widthAnchor constraintEqualToConstant:notifVC.view.frame.size.width].active = YES;
-              [notifVC.view.heightAnchor constraintEqualToConstant:notifVC.view.frame.size.height].active = YES;
-              [notifVC.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor/* constant:/*(notifVC.masterListView.frame.size.height - notifVC.masterListView.subviews[0].frame.size.height) / -2 -300*/].active = YES;
+              
+              self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+
 
             [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-              notifVC.view.alpha = 1;
+                self.geminiAdditionalView.alpha = 1;
             } completion:nil];
 
             /*for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
@@ -104,7 +184,6 @@ BOOL reduceAnimations;
                   if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
                     [removedRequests addObject:notificationRequest];
                     [notifVC removeNotificationRequest:notificationRequest];
-                    RLog(@"Removed %@ notification", notificationRequest.sectionIdentifier);
                   }
                 }
 
@@ -114,7 +193,6 @@ BOOL reduceAnimations;
                   if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
                     [notifVC insertNotificationRequest:notificationRequest];
                     [notifsToAddBack addObject:notificationRequest];
-                    RLog(@"Insert %@ notificatin", notificationRequest.sectionIdentifier);
                   }
                 }
                 for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
@@ -127,41 +205,35 @@ BOOL reduceAnimations;
           }
       return;
     } completion:nil];
-    RLog(@"yeh we changing shit dawg");
     mainSwitcherVC.isSmall = YES;
-
-    [combinedListVC _updateListViewContentInset];
   }
   else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && contentOrientation == 1) {
-    [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-      RLog(@"hucking fore");
-      self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 100, self.view.frame.size.width, self.view.frame.size.height);
-      self.view.transform = CGAffineTransformMakeScale(1, 1);
-      notifVC.view.alpha = 0;
-      return;
-    } completion:nil];
-    mainSwitcherVC.isSmall = NO;
-    topValue = 0;
-    [combinedListVC _updateListViewContentInset];
+      [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+          self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 100, self.view.frame.size.width, self.view.frame.size.height);
+          self.view.transform = CGAffineTransformMakeScale(1, 1);
+          self.geminiAdditionalView.alpha = 0;
+          return;
+      } completion:nil];
+      mainSwitcherVC.isSmall = NO;
   }
 }
 
 %new
 -(void)GMNShowTestNotifications {
   //add notifications for currently opened apps
-  NSArray *mainAppLayouts = [self valueForKey:@"_mainAppLayouts"];
+  NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
   for(int i = 0; i < [mainAppLayouts count]; i++ ){
     SBAppLayout *appLayout = mainAppLayouts[i];
     SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
     NSString *identifier = displayItem.bundleIdentifier;
-    int penis = i;
+    int ii = i;
     for(int b = 0; b < [mainAppLayouts count] - 0; b++) {
       void *handle = dlopen("/usr/lib/libnotifications.dylib", RTLD_LAZY);
       if (handle != NULL) {
 
          NSString *uid = [[NSUUID UUID] UUIDString];
           [objc_getClass("CPNotification") showAlertWithTitle:@"Holy Smokes!"
-                                                      message:[NSString stringWithFormat:@"Notification #%d", penis + 1]
+                                                      message:[NSString stringWithFormat:@"Notification #%d", ii + 1]
                                                      userInfo:@{@"" : @""}
                                                    badgeCount:1
                                                     soundName:nil //research UNNotificationSound
@@ -181,71 +253,34 @@ BOOL reduceAnimations;
 
 %hook SBTransitionSwitcherModifierEvent
 -(void)setToEnvironmentMode:(long long)arg1 {
-  environmentMode = arg1;
-  %orig;
-  if (arg1 != 2 && contentOrientation == 1){
-    mainSwitcherVC = [%c(SBMainSwitcherViewController) sharedInstance];
-    if (mainSwitcherVC.isSmall){
-      mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 100, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
-      mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
-      mainSwitcherVC.isSmall = NO;
-      topValue = 0;
+    environmentMode = arg1;
+    %orig;
+    if (arg1 != 2 && contentOrientation == 1){
+        mainSwitcherVC = [%c(SBMainSwitcherViewController) sharedInstance];
+        if (mainSwitcherVC.isSmall){
+            mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 100, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
+            mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
+            mainSwitcherVC.isSmall = NO;
+        }
+        mainSwitcherVC.geminiAdditionalView.alpha = 0;
     }
-    for(UIViewController *childVC in mainSwitcherVC.childViewControllers){
-      if(![childVC isKindOfClass:%c(SBDeckSwitcherViewController)]){
-        //[notifVC addChildViewController:childVC];
-      }
-    }
-    for(NCNotificationStructuredSectionList *notifList in notifLists){
-      for(NSLayoutConstraint *layoutConstraint in notifList.sectionListView.constraints) {
-        layoutConstraint.active = NO;
-      }
-      NSMutableArray *notifsToAddBack = [NSMutableArray array];
-      for(NCNotificationRequest *notificationRequest in removedRequests) {
-        [notifVC insertNotificationRequest:notificationRequest];
-        [notifsToAddBack addObject:notificationRequest];
-      }
-      for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
-        [removedRequests removeObject:notificationRequest];
-      }
-      notifVC.view.transform = CGAffineTransformMakeScale(1, 1);
-      [notifParentVC addChildViewController:notifVC];
-      notifVC.masterListView.clipsToBounds = NO;
-      //RLog(@"number of things %d", [adjunctListViews count]);
-      for(UIView *listView in adjunctListViews){
-        //RLog(@"adding %@", listView);
-        [notifVC.masterListView addSubview:listView];
-      }
-      [notifSuperview addSubview:notifVC.view];
-      notifVC.view.hidden = NO;
-    }
-    notifVC.view.alpha = 1;
-
-  }
 }
 %end
 
 %hook SBFluidSwitcherItemContainerHeaderView
 %property (nonatomic,assign) BOOL showingNotifs;
 -(id)initWithFrame:(CGRect)arg1 {
-  [headerViews addObject:self];
-  return %orig;
+    [headerViews addObject:self];
+    return %orig;
 }
 -(void)setTextAlpha:(CGFloat)arg1 {
   %orig;
-  UILabel *label = (UILabel *)[self valueForKey:@"_firstTitleLabel"];
   if(arg1 >= 0.9 && ![self showingNotifs] && mainSwitcherVC.isSmall && !isScrollingFast) {
-      RLog(@"Add notifs for: %@", label.text);
 
-      //Adds childVC's to mainSwitcherVC to avoid UIViewControlerHierarchyInconsistency error
-      /*for(UIViewController *childVC in notifVC.childViewControllers){
-        [mainSwitcherVC addChildViewController:childVC];
-      }*/
-
-      //for(NCNotificationStructuredSectionList *notifList in notifLists) {
+      //for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections) {
         //[notifVC revealNotificationHistory:YES animated:NO];
         //[notifList.sectionListView setRevealed:YES];
-        SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
+        /*SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
         SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
         SBAppLayout *appLayout = snapshotView.appLayout;
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
@@ -253,7 +288,7 @@ BOOL reduceAnimations;
         AXNManager *axonManager = [%c(AXNManager) sharedInstance];
         [axonManager showNotificationRequestsForBundleIdentifier:identifier];
         allNotificationRequests  = [NSMutableArray array];
-        for(NCNotificationStructuredSectionList *notifList in notifLists){
+        for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
           for(id req in notifList.allNotificationRequests){
             [allNotificationRequests addObject:req];
             [notifList.sectionListView setRevealed:YES];
@@ -265,7 +300,6 @@ BOOL reduceAnimations;
           if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
             [notifVC insertNotificationRequest:notificationRequest];
             [notifsToAddBack addObject:notificationRequest];
-            //RLog(@"Insert %@ notificatin", notificationRequest.sectionIdentifier);
           }
         }
         for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
@@ -282,24 +316,23 @@ BOOL reduceAnimations;
           if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
             [removedRequests addObject:notificationRequest];
             [notifVC removeNotificationRequest:notificationRequest];
-            //RLog(@"Removed %@ notification", notificationRequest.sectionIdentifier);
           }
         }
         if([notifVC respondsToSelector:@selector(axnAllowChanges)]){
           notifVC.axnAllowChanges = axnAllowChangesOld;
         }
       //}
-      self.showingNotifs = YES;
-  }
+      self.showingNotifs = YES;*/
+  //}
+      /*
   else if (arg1 < 0.9 && [self showingNotifs]){
     if(![notifVC respondsToSelector:@selector(axnAllowChanges)]) {
       allNotificationRequests  = [NSMutableArray array];
-      for(NCNotificationStructuredSectionList *notifList in notifLists){
+      for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
         for(id req in notifList.allNotificationRequests){
           [allNotificationRequests addObject:req];
         }
       }
-      RLog(@"Remove notifs for: %@", label.text);
       SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
       SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
       SBAppLayout *appLayout = snapshotView.appLayout;
@@ -307,63 +340,50 @@ BOOL reduceAnimations;
       NSString *identifier = displayItem.bundleIdentifier;
       for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
         if([notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-          RLog(@"removed req: %@", notificationRequest.sectionIdentifier);
           [removedRequests addObject:notificationRequest];
           [notifVC removeNotificationRequest:notificationRequest];
-          //RLog(@"Removed %@ notification", notificationRequest.sectionIdentifier);
         }
       }
     }
 
-    self.showingNotifs = NO;
+    self.showingNotifs = NO;*/
   }
-}
-%end
-
-%hook NCNotificationStructuredSectionList
--(id)initWithTitle:(id)arg1 {
-  [notifLists addObject:self];
-  RLog(@"notifList: %@", self);
-  return %orig;
 }
 %end
 
 %hook NCNotificationStructuredListViewController
 -(id)init {
-  notifVC = self;
-  return %orig;
+    if(!notifVC) notifVC = self;
+    return %orig;
 }
--(void)viewWillLayoutSubviews {
-  %orig;
-  if(mainSwitcherVC.isSmall){
-    notifVC.masterListView.frame = CGRectMake(notifVC.masterListView.frame.origin.x, notifVC.masterListView.frame.origin.y, notifVC.masterListView.frame.size.width,/* notifVC.view.frame.size.height - notifVC.view.frame.origin.y*/350);
-  }
-  if(!notifSuperview) notifSuperview = self.view.superview;
-  if(!notifParentVC) notifParentVC = self.parentViewController;
+-(void)insertNotificationRequest:(id)arg1 {
+    %orig;
+    [mainSwitcherVC insertNotificationsForBundleIdentifier:nil];
+}
+-(void)removeNotificationRequest:(id)arg1 {
+    %orig;
+    [mainSwitcherVC insertNotificationsForBundleIdentifier:nil];
 }
 %end
 
 %hook GeminiSwitcherView
 -(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-  id orig = %orig;
-  if(self == mainSwitcherVC.view) {
-    if(self.clipsToBounds || self.hidden || self.alpha == 0){
-      RLog(@"returning : %@", orig);
-      return orig;
-    }
-    for(UIView *subview in self.subviews.reverseObjectEnumerator) {
-      if(subview == notifVC.view){
-        CGPoint subPoint = [subview convertPoint:point fromView:self];
-        UIView *result = [subview hitTest:subPoint withEvent:event];
-        if(result) {
-          RLog(@"quack");
-          return result;
+    id orig = %orig;
+    if(self == mainSwitcherVC.view) {
+        if(self.clipsToBounds || self.hidden || self.alpha == 0){
+            return orig;
         }
-      }
+        for(UIView *subview in self.subviews.reverseObjectEnumerator) {
+            if(subview == mainSwitcherVC.geminiAdditionalView){
+                CGPoint subPoint = [subview convertPoint:point fromView:self];
+                UIView *result = [subview hitTest:subPoint withEvent:event];
+                if(result) {
+                    return result;
+                }
+            }
+        }
     }
-  }
-  RLog(@"returning : %@", orig);
-  return orig;
+    return orig;
 }
 %end
 
@@ -381,14 +401,11 @@ BOOL reduceAnimations;
         CGFloat scrollSpeed = fabs(scrollSpeedNotAbs);
         if (scrollSpeed > 0.5) {
             isScrollingFast = YES;
-            //notifVC.view.hidden = YES;
-            RLog(@"Fast");
         } else {
             isScrollingFast = NO;
             if(mainSwitcherVC.isSmall && notifVC.view.hidden){
-              //notifVC.view.hidden = NO;
             }
-            /*for(NCNotificationStructuredSectionList *notifList in notifLists){
+            /*for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
               for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
                 if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
                   [notifVC revealNotificationHistory:YES animated:NO];
@@ -405,13 +422,11 @@ BOOL reduceAnimations;
                   if(!identifier){
                     continue;
                   }
-                  RLog(@"identifier = %@", identifier);
                   //removes notifications that aren't a certain app
                   for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
                     if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
                       [removedRequests addObject:notificationRequest];
                       [notifVC removeNotificationRequest:notificationRequest];
-                      RLog(@"Removed %@ notification", notificationRequest.sectionIdentifier);
                     }
                   }
 
@@ -421,7 +436,6 @@ BOOL reduceAnimations;
                     if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
                       [notifVC insertNotificationRequest:notificationRequest];
                       [notifsToAddBack addObject:notificationRequest];
-                      RLog(@"Insert %@ notificatin", notificationRequest.sectionIdentifier);
                     }
                   }
                   for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
@@ -432,7 +446,6 @@ BOOL reduceAnimations;
                 }
               }
             }*/
-            RLog(@"Slow");
         }
 
         lastOffset = currentOffset;
@@ -441,169 +454,131 @@ BOOL reduceAnimations;
 }
 
 -(void)_setScrolling:(BOOL)arg1 {
-  %orig;
-  if(isScrollingFast && mainSwitcherVC.isSmall && !arg1){
-    notifVC.view.hidden = NO;
-  }
-  if(!arg1){
-
-  }
-}
-%end
-
-%hook CSCombinedListViewController
--(instancetype)initWithNibName:(id)arg1 bundle:(id)arg2 {
-  combinedListVC = self;
-  return %orig;
-}
--(UIEdgeInsets)_listViewDefaultContentInsets {
-  UIEdgeInsets insets = %orig;
-  if(mainSwitcherVC.isSmall){
-    for(UIView *listView in adjunctListViews){
-      if(!topValue && listView.frame.size.height != 0){
-        topValue = listView.frame.size.height;
-      }
+    %orig;
+    if(isScrollingFast && mainSwitcherVC.isSmall && !arg1){
+        
     }
-    insets.top += (topValue + 200) * -1;
-    return insets;
-  }
-  else {
-    return insets;
-  }
-}
-%end
+    
+    if(!arg1){
 
-%hook CSNotificationAdjunctListViewController
--(instancetype)init {
-  adjunctListViewController = self;
-  return %orig;
+    }
 }
 %end
-
-//Fixes Sylph bug. Thank god for hopper amirite.
-%hook MediaControlsTransportStackView
--(id)_rootView {
-	if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
-		return [%c(SBCoverSheetWindow) alloc];
-	}
-	else {
-		return %orig;
-	}
-}
-%end
-
-%hook MediaControlsParentContainerView
--(id)_rootView {
-	if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
-		return [%c(SBCoverSheetWindow) alloc];
-	}
-	else {
-		return %orig;
-	}
-}
-%end
-
-%hook MediaControlsTimeControl
--(id)_rootView {
-	if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
-		return [%c(SBCoverSheetWindow) alloc];
-	}
-	else {
-		return %orig;
-	}
-}
-%end
-
-%hook MediaControlsHeaderView
--(id)_rootView {
-	if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
-		return [%c(SBCoverSheetWindow) alloc];
-	}
-	else {
-		return %orig;
-	}
-}
-%end
-
-%hook MediaControlsVolumeSlider
--(id)_rootView {
-	if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
-		return [%c(SBCoverSheetWindow) alloc];
-	}
-	else {
-		return %orig;
-	}
-}
-%end
-//End of Sylph support hooks
 
 %hook NCNotificationListView
--(void)setRevealed:(BOOL)arg1{
-  %orig;
-  RLog(@"setRevealed %d", arg1);
-}
 -(void)insertViewAtIndex:(NSUInteger)arg1 animated:(BOOL)arg2 {
-  if(mainSwitcherVC.isSmall && reduceAnimations){
-    %orig(arg1, NO);
-  }
-  else {
-    %orig;
-  }
+    if(mainSwitcherVC.isSmall && reduceAnimations){
+        %orig(arg1, NO);
+    }
+    else {
+        %orig;
+    }
 }
 -(void)removeViewAtIndex:(NSUInteger)arg1 animated:(BOOL)arg2 {
-  if(mainSwitcherVC.isSmall && reduceAnimations){
-    %orig(arg1, NO);
-  }
-  else {
-    %orig;
-  }
-}
-%end
-
-%hook NCNotificationStructuredSectionList
--(void)_removeNotificationGroupList:(id)arg1 {
-  %orig;
-  RLog(@"_removeNotificationGroupList %@", arg1);
+    if(mainSwitcherVC.isSmall && reduceAnimations){
+        %orig(arg1, NO);
+    }
+    else {
+        %orig;
+    }
 }
 %end
 
 %hook AXNManager
 -(void)showNotificationRequest:(id)arg1 {
-  %orig;
-  RLog(@"showNotificationRequest: %@", arg1);
+    %orig;
 }
 %end
 
 %hook SBFluidSwitcherAnimationSettings
 -(void)setStackedSwitcherTrackingSettings:(id)arg1 {
-  %orig(nil);
-  RLog(@"ddueueu");
+    %orig(nil);
+}
+%end
+%end
+
+
+
+%group Sylph
+//Fixes Sylph bug. Thank god for hopper amirite.
+%hook MediaControlsTransportStackView
+-(id)_rootView {
+    if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
+        return [%c(SBCoverSheetWindow) alloc];
+    }
+    else {
+        return %orig;
+    }
 }
 %end
 
+%hook MediaControlsParentContainerView
+-(id)_rootView {
+    if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
+        return [%c(SBCoverSheetWindow) alloc];
+    }
+    else {
+        return %orig;
+    }
+}
+%end
+
+%hook MediaControlsTimeControl
+-(id)_rootView {
+    if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
+        return [%c(SBCoverSheetWindow) alloc];
+    }
+    else {
+        return %orig;
+    }
+}
+%end
+
+%hook MediaControlsHeaderView
+-(id)_rootView {
+    if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
+        return [%c(SBCoverSheetWindow) alloc];
+    }
+    else {
+        return %orig;
+    }
+}
+%end
+
+%hook MediaControlsVolumeSlider
+-(id)_rootView {
+    if([%orig isKindOfClass:%c(SBMainSwitcherWindow)]){
+        return [%c(SBCoverSheetWindow) alloc];
+    }
+    else {
+        return %orig;
+    }
+}
+%end
+//End of Sylph support hooks
+%end
+
+
 static void loadPrefs(){
-	NSMutableDictionary *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/User/Library/Preferences/com.galacticdev.geminiprefs.plist"];
-
-  isEnabled = [prefs objectForKey:@"isEnabled"] ? [[prefs objectForKey:@"isEnabled"] boolValue] : YES;
-  reduceAnimations  = [prefs objectForKey:@"reduceAnimations"] ? [[prefs objectForKey:@"reduceAnimations"] boolValue] : NO;
-
+    NSMutableDictionary *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/User/Library/Preferences/com.galacticdev.geminiprefs.plist"];
+    isEnabled = [prefs objectForKey:@"isEnabled"] ? [[prefs objectForKey:@"isEnabled"] boolValue] : YES;
+    reduceAnimations  = [prefs objectForKey:@"reduceAnimations"] ? [[prefs objectForKey:@"reduceAnimations"] boolValue] : NO;
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-	RLog(@"PREFERENCES CHANGED");
-  loadPrefs();
+    loadPrefs();
 }
 
 
-%ctor {  loadPrefs();
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-	if(isEnabled) {
-    %init;
-    notifLists = [NSMutableArray array];
-    headerViews = [NSMutableArray array];
-    removedRequests = [NSMutableArray array];
-    adjunctListViews = [NSMutableArray array];
-  }
-
-
+%ctor {
+    loadPrefs();
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+    if(isEnabled) {
+        %init(Main);
+        headerViews = [NSMutableArray array];
+        removedRequests = [NSMutableArray array];
+    }
+    if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
+        %init(Sylph);
+    }
 }

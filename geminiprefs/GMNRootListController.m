@@ -147,11 +147,6 @@ OBWelcomeController *welcomeController;
 	if (notificationName) {
 		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), notificationName, NULL, NULL, YES);
 	}
-    
-    if([[specifier.properties objectForKey:@"key"] isEqualToString:@"reduceAnimations"] && [value boolValue]) {
-        RLog(@"we made it boys");
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://google.com"] options:@{} completionHandler:nil];
-    }
 }
 
 -(void)dismissVC {

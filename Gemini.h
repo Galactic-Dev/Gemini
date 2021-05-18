@@ -14,29 +14,65 @@
 @interface SBDeckSwitcherViewController : SBFluidSwitcherViewController
 @end
 
-@interface SBMainSwitcherViewController : UIViewController
-@property (nonatomic, assign) BOOL isSmall;
-@property (nonatomic, retain) UIView *geminiScrollView;
-+(SBMainSwitcherViewController *)sharedInstance;
--(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
-@property (nonatomic,readonly) SBDeckSwitcherViewController* contentViewController;
+
+//Control Center Stuff
+@interface SBControlCenterSystemAgent : NSObject
 @end
+
+@interface CCSModuleRepository : NSObject
++(instancetype)repositoryWithDefaults;
+@end
+
+@interface CCUIModuleInstanceManager : NSObject
+-(instancetype)_initWithSystemAgent:(SBControlCenterSystemAgent *)arg1 repository:(CCSModuleRepository *)arg2;
++(instancetype)sharedInstance;
+@end
+
+@interface CCUIModuleCollectionViewController : UIViewController
+-(instancetype)initWithModuleInstanceManager:(CCUIModuleInstanceManager *)arg1;
+-(void)_updateModuleControllers;
+-(void)_updatePositionProviders;
+-(void)_updateEnabledModuleIdentifiers;
+@end
+
+
 
 @interface NCNotificationListView : UIScrollView
 -(void)setRevealed:(BOOL)arg1;
 @end
 
-@interface NCNotificationStructuredSectionList
+@interface NCNotificationStructuredSectionList : NSObject
 @property (nonatomic,retain) NCNotificationListView *sectionListView;
--(NSArray *)allNotificationRequests;
+-(NSMutableArray *)allNotificationRequests;
+-(void)insertNotificationRequest:(id)arg1;
+-(void)removeNotificationRequest:(id)arg1;
+@property (strong, nonatomic) UIView *revealHintView;
+@end
+
+@interface NCNotificationMasterList : NSObject
+@property (strong, nonatomic) NSMutableArray <NCNotificationStructuredSectionList *> *notificationSections;
 @end
 
 @interface NCNotificationStructuredListViewController : UIViewController
 @property (nonatomic, strong, readwrite) NCNotificationListView *masterListView;
+@property (strong, nonatomic) NCNotificationMasterList *masterList;
 @property (nonatomic,assign) BOOL axnAllowChanges;
 -(void)revealNotificationHistory:(BOOL)arg1 animated:(BOOL)arg2;
 -(void)removeNotificationRequest:(id)arg1;
 -(void)insertNotificationRequest:(id)arg1;
+@property (strong, nonatomic) id delegate;
+@property (nonatomic, assign, getter=isDeviceAuthenticated) BOOL deviceAuthenticated;
+@end
+
+@interface SBMainSwitcherViewController : UIViewController
+@property (nonatomic, assign) BOOL isSmall;
++(SBMainSwitcherViewController *)sharedInstance;
+-(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
+@property (nonatomic,readonly) SBDeckSwitcherViewController* contentViewController;
+@property (strong, nonatomic) CCUIModuleCollectionViewController *moduleViewController;
+@property (strong, nonatomic) NCNotificationStructuredListViewController *structuredListViewController;
+@property (strong, nonatomic) UIView *geminiAdditionalView;
+-(void)insertNotificationsForBundleIdentifier:(NSString *)identifier;
 @end
 
 @interface SBFluidSwitcherContentView : UIView
@@ -53,6 +89,8 @@
 +(instancetype)sharedInstance;
 -(void)showNotificationRequestsForBundleIdentifier:(NSString *)bundleIdentifier;
 @property (nonatomic, weak) AXNView *view;
+-(NSMutableArray *)requestsForBundleIdentifier:(NSString *)arg1;
+@property (strong, nonatomic) NSMutableDictionary *names;
 @end
 
 @interface SBFluidSwitcherItemContainerHeaderView : UIView
