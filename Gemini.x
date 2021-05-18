@@ -148,64 +148,64 @@ BOOL reduceAnimations;
 
       
       
-    [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-      self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
-      self.view.transform = CGAffineTransformMakeScale(.75, .75);
+      [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+          self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
+          self.view.transform = CGAffineTransformMakeScale(.75, .75);
           [notifVC revealNotificationHistory:YES animated:NO];
           for(int i = 0; i < [notifVC.masterList.notificationSections count]; i++) {
-            NCNotificationStructuredSectionList *notifList = notifVC.masterList.notificationSections[i];
-            [notifList.sectionListView setRevealed:YES];
+              NCNotificationStructuredSectionList *notifList = notifVC.masterList.notificationSections[i];
+              [notifList.sectionListView setRevealed:YES];
 
-            notifList.sectionListView.frame = CGRectMake(notifList.sectionListView.frame.origin.x, notifList.sectionListView.frame.origin.y /*+ 643*/, notifList.sectionListView.frame.size.width, notifList.sectionListView.frame.size.height);
-              
+              notifList.sectionListView.frame = CGRectMake(notifList.sectionListView.frame.origin.x, notifList.sectionListView.frame.origin.y /*+ 643*/, notifList.sectionListView.frame.size.width, notifList.sectionListView.frame.size.height);
+
               self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
 
 
-            [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-                self.geminiAdditionalView.alpha = 1;
-            } completion:nil];
+              [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+                  self.geminiAdditionalView.alpha = 1;
+              } completion:nil];
 
-            /*for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
-              if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
-                [notifVC revealNotificationHistory:YES animated:NO];
-                [notifList.sectionListView setRevealed:YES];
-                NSArray *allNotificationRequests = [notifList allNotificationRequests];
-                SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
-                SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-                SBAppLayout *appLayout = snapshotView.appLayout;
-                SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                NSString *identifier = displayItem.bundleIdentifier;
-                AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-                [axonManager showNotificationRequestsForBundleIdentifier:identifier];
-                [notifList.sectionListView setRevealed:YES];
+              for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
+                  if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
+                      [notifVC revealNotificationHistory:YES animated:NO];
+                      [notifList.sectionListView setRevealed:YES];
+                      NSArray *allNotificationRequests = [notifList allNotificationRequests];
+                      SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
+                      SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
+                      SBAppLayout *appLayout = snapshotView.appLayout;
+                      SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                      NSString *identifier = displayItem.bundleIdentifier;
+                      AXNManager *axonManager = [%c(AXNManager) sharedInstance];
+                      [axonManager showNotificationRequestsForBundleIdentifier:identifier];
+                      [notifList.sectionListView setRevealed:YES];
 
-                //removes notifications that aren't a certain app
-                for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
-                  if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-                    [removedRequests addObject:notificationRequest];
-                    [notifVC removeNotificationRequest:notificationRequest];
+                      //removes notifications that aren't a certain app
+                      for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
+                          if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
+                              [removedRequests addObject:notificationRequest];
+                              [notifVC removeNotificationRequest:notificationRequest];
+                          }
+                      }
+
+                      //inserts removed notifications back into the notification center
+                      NSMutableArray *notifsToAddBack = [NSMutableArray array];
+                      for(NCNotificationRequest *notificationRequest in removedRequests) {
+                          if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
+                              [notifVC insertNotificationRequest:notificationRequest];
+                              [notifsToAddBack addObject:notificationRequest];
+                          }
+                      }
+                      for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
+                          [removedRequests removeObject:notificationRequest];
+                      }
+                      headerView.showingNotifs = YES;
+                      break;
                   }
-                }
-
-                //inserts removed notifications back into the notification center
-                NSMutableArray *notifsToAddBack = [NSMutableArray array];
-                for(NCNotificationRequest *notificationRequest in removedRequests) {
-                  if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
-                    [notifVC insertNotificationRequest:notificationRequest];
-                    [notifsToAddBack addObject:notificationRequest];
-                  }
-                }
-                for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
-                  [removedRequests removeObject:notificationRequest];
-                }
-                headerView.showingNotifs = YES;
-                break;
               }
-            }*/
           }
-      return;
-    } completion:nil];
-    mainSwitcherVC.isSmall = YES;
+          return;
+      } completion:nil];
+      mainSwitcherVC.isSmall = YES;
   }
   else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && contentOrientation == 1) {
       [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
