@@ -1,17 +1,25 @@
 **additional view = the view that is displayed under the cc when it is in its smaller size
 
+priorities:
+1 - least priority
+10 - most priority
+
+
 Bugs:
-- notification filtering not working sometimes
-- cc music player not closing when tapping
-- needs blurred bg for when opening expanded cc modules
-- fix scroll view not having a large enough content size for notifs
-- fix not all notifications showing until you start to scroll
-- screen recording module not syncing across different cc's
-- fix animations in cc
+- notification filtering not working sometimes (10) *** should be fixed
+- cc music player not closing when tapping (10)
+- needs blurred bg for when opening expanded cc modules (5)
+- fix scroll view not having a large enough content size for notifs (10)
+- fix not all notifications showing until you start to scroll (8)
+- screen recording module not syncing across different cc's (4)
+- fix animations in cc (1)
+- fix suggested app view's size getting messed up & getting covered by the additional view (4)
 
 Features:
-- show ls music player in additional view area
-- horizontal scroll view to switch between additional views
-- option to constantly have scroll view in miniature size
-- custom control center different from the normal one (select whichever modules you want to show respectively from the main cc)
--  
+- show ls music player in additional view area (6)
+- horizontal scroll view to switch between additional views (7)
+- option to constantly have scroll view in miniature size (7)
+- custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (9)
+- better preferences with more organization, an obwelcomecontroller, etc. (5)
+- show floaty dock in switcher view (1)
+-

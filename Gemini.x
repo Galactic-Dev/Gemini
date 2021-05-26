@@ -2,7 +2,6 @@
 
 NCNotificationStructuredListViewController *notifVC;
 SBMainSwitcherViewController *mainSwitcherVC;
-NSMutableArray<SBFluidSwitcherItemContainerHeaderView *> *headerViews;
 long long environmentMode;
 
 NSTimeInterval lastOffsetCaptured;
@@ -38,7 +37,9 @@ NSInteger additionalViewSelection;
 //supposedly fixes some modules not updating; this is the same code that runs after setting up the vc in the handlePinch: method 
 -(void)addChildViewController:(UIViewController *)viewController {
     %orig;
-    [viewController.childViewControllers[0] viewWillAppear:NO];
+    if(self != mainSwitcherVC.geminiModuleViewController) {
+        [viewController.childViewControllers[0] viewWillAppear:NO];
+    }
 }
 %end
 
@@ -77,6 +78,22 @@ NSInteger additionalViewSelection;
     //adds notif observer for the "Test Notifications" button in prefs
     [[NSDistributedNotificationCenter defaultCenter] addObserver:self selector:@selector(GMNShowTestNotifications) name:@"com.galacticdev.gemini/showTestNotifications" object:nil];
     }
+%new -(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier {
+    UIView *view = [self.view hitTest:self.view.center withEvent:nil];
+    if(view.superview.class == %c(SBAppSwitcherPageView)) {
+        RLog(@"success");
+        SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)view.superview;
+        SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
+        SBAppLayout *appLayout = snapshotView.appLayout;
+        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+        NSString *actualIdentifier = displayItem.bundleIdentifier;
+        RLog(@"center ident %@", actualIdentifier);
+        if([identifier isEqualToString:actualIdentifier]) {
+            return YES;
+        }
+    }
+    return NO;
+}
 
 %new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
     NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
@@ -88,7 +105,6 @@ NSInteger additionalViewSelection;
     RLog(@"NOT SKPPING");
 
     AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-
 
     NSMutableArray <NCNotificationRequest *> *requests = [NSMutableArray array];
     NSMutableArray <NCNotificationRequest *> *oldRequests = [NSMutableArray array];
@@ -126,9 +142,6 @@ NSInteger additionalViewSelection;
             if([sectionIdentifier isEqualToString:identifier]) {
                 [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
             }
-        }
-        else {
-            [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
         }
     }
     self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
@@ -207,18 +220,26 @@ NSInteger additionalViewSelection;
             self.view.transform = CGAffineTransformMakeScale(.75, .75);
 
             self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+            
+            for(SBAppLayout *appLayout in self.contentViewController.visibleItemContainers.allKeys) {
+                SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                NSString *identifier = displayItem.bundleIdentifier;
+                
+                if(appLayout.geminiIsShowingNotifs && identifier != self.currentIdentifier) {
+                    appLayout.geminiIsShowingNotifs = NO;
+                }
+                else if(appLayout.geminiIsShowingNotifs) {
+                    continue;
+                }
 
-            for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
-                if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
-                    SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
-                    SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-                    SBAppLayout *appLayout = snapshotView.appLayout;
-                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                    self.currentIdentifier = displayItem.bundleIdentifier;
-                    RLog(@"identifier %@", self.currentIdentifier);
+                if([self bundleIdentifierIsInCenterOfSwitcher:identifier]) {
+                    self.currentIdentifier = identifier;
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier];
-                    headerView.showingNotifs = YES;
+                    appLayout.geminiIsShowingNotifs = YES;
                     break;
+                }
+                else {
+                    continue;
                 }
             }
             return;
@@ -286,36 +307,9 @@ NSInteger additionalViewSelection;
 }
 %end
 
-%hook SBFluidSwitcherItemContainerHeaderView
-%property (nonatomic,assign) BOOL showingNotifs;
-
--(id)initWithFrame:(CGRect)arg1 {
-    [headerViews addObject:self];
-    return %orig;
-}
--(void)setTextAlpha:(CGFloat)arg1 {
-    %orig;
-    if(arg1 >= 0.9 && ![self showingNotifs] && mainSwitcherVC.isSmall && !isScrollingFast) {
-        SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
-        SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-        SBAppLayout *appLayout = snapshotView.appLayout;
-        if(![mainSwitcherVC.contentViewController.visibleItemContainers.allKeys containsObject:appLayout]) {
-            SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-            NSString *identifier = displayItem.bundleIdentifier;
-            RLog(@"identifier is not showing %@", identifier);
-            return;
-        }
-        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-        mainSwitcherVC.currentIdentifier = displayItem.bundleIdentifier;
-        
-        [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
-        self.showingNotifs = YES;
-    }
-    else if (arg1 < 0.9 && [self showingNotifs]){
-        self.showingNotifs = NO;
-    }
-}
-%end
+%hook SBAppLayout
+%property (nonatomic, assign) BOOL geminiIsShowingNotifs;
+%end;
 
 %hook NCNotificationStructuredListViewController
 -(id)init {
@@ -387,24 +381,26 @@ NSInteger additionalViewSelection;
         }
         else {
             isScrollingFast = NO;
-            for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
-                if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
-                    SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
-                    SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-                    SBAppLayout *appLayout = snapshotView.appLayout;
-                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                    
-                    if(![mainSwitcherVC.contentViewController.visibleItemContainers.allKeys containsObject:appLayout]) { //checks if the identifier could possibly be visible; if not it gets skipped;
-                        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                        NSString *identifier = displayItem.bundleIdentifier;
-                        RLog(@"identifier is not showing %@", identifier);
-                        continue;
-                    }
-                    mainSwitcherVC.currentIdentifier = displayItem.bundleIdentifier;
+            
+            for(SBAppLayout *appLayout in mainSwitcherVC.contentViewController.visibleItemContainers.allKeys) {
+                SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                NSString *identifier = displayItem.bundleIdentifier;
+                
+                if(appLayout.geminiIsShowingNotifs && identifier != mainSwitcherVC.currentIdentifier) {
+                    appLayout.geminiIsShowingNotifs = NO;
+                }
+                else if(appLayout.geminiIsShowingNotifs) {
+                    continue;
+                }
 
+                if([mainSwitcherVC bundleIdentifierIsInCenterOfSwitcher:identifier]) {
+                    mainSwitcherVC.currentIdentifier = identifier;
                     [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
-                    headerView.showingNotifs = YES;
+                    appLayout.geminiIsShowingNotifs = YES;
                     break;
+                }
+                else {
+                    continue;
                 }
             }
         }
@@ -520,8 +516,6 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
     
     if(isEnabled) {
         %init(Main);
-        headerViews = [NSMutableArray array];
-        
         if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
             %init(Sylph);
         }

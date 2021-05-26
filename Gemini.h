@@ -76,6 +76,7 @@
 @property (strong, nonatomic) NSString *currentIdentifier;
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
 @property (nonatomic, assign) BOOL isSmall;
+-(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier;
 @end
 
 @interface SBFluidSwitcherContentView : UIView
@@ -116,6 +117,9 @@
 
 @interface SBAppLayout : NSObject
 @property (nonatomic, copy) NSDictionary *rolesToLayoutItemsMap;
+
+//custom properties and methods
+@property (nonatomic, assign) BOOL geminiIsShowingNotifs;
 @end
 
 @interface SBAppSwitcherReusableSnapshotView
