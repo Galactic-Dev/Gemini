@@ -9,11 +9,11 @@
 
 @interface SBFluidSwitcherViewController : UIViewController
 @property (nonatomic,retain) UIView *contentView;
+@property (strong, nonatomic) NSMutableDictionary *visibleItemContainers;
 @end
 
 @interface SBDeckSwitcherViewController : SBFluidSwitcherViewController
 @end
-
 
 //Control Center Stuff
 @interface SBControlCenterSystemAgent : NSObject
@@ -34,8 +34,6 @@
 -(void)_updatePositionProviders;
 -(void)_updateEnabledModuleIdentifiers;
 @end
-
-
 
 @interface NCNotificationListView : UIScrollView
 -(void)setRevealed:(BOOL)arg1;
@@ -65,14 +63,19 @@
 @end
 
 @interface SBMainSwitcherViewController : UIViewController
-@property (nonatomic, assign) BOOL isSmall;
 +(SBMainSwitcherViewController *)sharedInstance;
--(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
 @property (nonatomic,readonly) SBDeckSwitcherViewController* contentViewController;
-@property (strong, nonatomic) CCUIModuleCollectionViewController *moduleViewController;
-@property (strong, nonatomic) NCNotificationStructuredListViewController *structuredListViewController;
+-(NSInteger)sbActiveInterfaceOrientation;
+
+//my custom methods & properties
+@property (strong, nonatomic) CCUIModuleCollectionViewController *geminiModuleViewController;
+@property (strong, nonatomic) NCNotificationStructuredListViewController *geminiStructuredListViewController;
 @property (strong, nonatomic) UIView *geminiAdditionalView;
 -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier;
+@property (strong, nonatomic) NSMutableDictionary *notificationRequests;
+@property (strong, nonatomic) NSString *currentIdentifier;
+-(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
+@property (nonatomic, assign) BOOL isSmall;
 @end
 
 @interface SBFluidSwitcherContentView : UIView
@@ -142,5 +145,4 @@
 @end
 
 @interface CSNotificationAdjunctListViewController
-
 @end

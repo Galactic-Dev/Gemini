@@ -1,11 +1,11 @@
 #import "Gemini.h"
 
-NSUInteger contentOrientation;
 NCNotificationStructuredListViewController *notifVC;
-NSMutableArray *removedRequests;
 SBMainSwitcherViewController *mainSwitcherVC;
 NSMutableArray<SBFluidSwitcherItemContainerHeaderView *> *headerViews;
 long long environmentMode;
+
+NSTimeInterval lastOffsetCaptured;
 
 //sbappswitcherscrollview stuff
 CGPoint lastOffset;
@@ -15,21 +15,34 @@ BOOL isScrollingFast;
 //PREFERENCES:
 BOOL isEnabled;
 BOOL reduceAnimations;
+NSInteger additionalViewSelection;
 
 %group Main
 %hook CCUIModuleCollectionViewController
+//fixes weird animation issues by just... causing it not to animate;
 -(void)dismissExpandedModuleAnimated:(BOOL)arg1 completion:(id)arg2 {
+    if(self != mainSwitcherVC.geminiModuleViewController) {
+        %orig;
+        return;
+    }
     %orig(NO, arg2);
 }
 -(void)dismissPresentedContentAnimated:(BOOL)arg1 completion:(id)arg2 {
+    if(self != mainSwitcherVC.geminiModuleViewController) {
+        %orig;
+        return;
+    }
     %orig(NO, arg2);
 }
+
+//supposedly fixes some modules not updating; this is the same code that runs after setting up the vc in the handlePinch: method 
 -(void)addChildViewController:(UIViewController *)viewController {
     %orig;
     [viewController.childViewControllers[0] viewWillAppear:NO];
 }
 %end
 
+//prevents axon from adding my custom clvc as its clvc; in turn, breaking both tweaks simultaneously
 %hook AXNManager
 -(void)setClvc:(id)arg1 {
     if(![self valueForKey:@"_clvc"]) {
@@ -40,214 +53,219 @@ BOOL reduceAnimations;
 
 %hook SBMainSwitcherViewController
 %property (nonatomic, assign) BOOL isSmall;
-%property (strong, nonatomic) CCUIModuleCollectionViewController *moduleViewController;
-%property (strong, nonatomic) NCNotificationStructuredListViewController *structuredListViewController;
+%property (strong, nonatomic) CCUIModuleCollectionViewController *geminiModuleViewController;
+%property (strong, nonatomic) NCNotificationStructuredListViewController *geminiStructuredListViewController;
 %property (strong, nonatomic) UIView *geminiAdditionalView;
+%property (strong, nonatomic) NSMutableDictionary *notificationRequests;
+%property (strong, nonatomic) NSString *currentIdentifier;
+
 -(void)viewDidLoad {
-  %orig;
-  mainSwitcherVC = self;
+    %orig;
+    mainSwitcherVC = self;
 
-  //replaces the mainSwitcherVC's view with a custom UIView subclass so that I can override the hitTest:withEvent: method
-  NSArray *subviews = self.view.subviews;
-  self.view = [[GeminiSwitcherView alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height)];
-  for(UIView *subview in subviews){
-    [self.view addSubview:subview];
-  }
-
-  //add pinch recognizer
-  UIPinchGestureRecognizer *pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
-  [self.view addGestureRecognizer:pinchRecognizer];
-
-  //adds notif observer for the "Test Notifications" button in prefs
-  [[NSDistributedNotificationCenter defaultCenter] addObserver:self selector:@selector(GMNShowTestNotifications) name:@"com.galacticdev.gemini/showTestNotifications" object:nil];
-}
--(void)_setContentOrientation:(long long)arg1 forContentViewController:(id)arg2 {
-  %orig;
-  contentOrientation = arg1;
-}
-%new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
-    AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-
-    
-    NSMutableArray *requests = [NSMutableArray array];
-    NSMutableArray *oldRequests = [NSMutableArray array];
-    
-    for(NSString *identifier in axonManager.names.allKeys) {
-        [requests addObjectsFromArray:[axonManager requestsForBundleIdentifier:identifier]];
+    //replaces the mainSwitcherVC's view with a custom UIView subclass so that I can override the hitTest:withEvent: method
+    NSArray *subviews = self.view.subviews;
+    self.view = [[GeminiSwitcherView alloc] initWithFrame:self.view.frame];
+    for(UIView *subview in subviews){
+        [self.view addSubview:subview];
     }
 
-    for(NCNotificationStructuredSectionList *sectionList in self.structuredListViewController.masterList.notificationSections) {
+    //add pinch recognizer
+    UIPinchGestureRecognizer *pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
+    [self.view addGestureRecognizer:pinchRecognizer];
+
+    //adds notif observer for the "Test Notifications" button in prefs
+    [[NSDistributedNotificationCenter defaultCenter] addObserver:self selector:@selector(GMNShowTestNotifications) name:@"com.galacticdev.gemini/showTestNotifications" object:nil];
+    }
+
+%new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
+    NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
+    NSTimeInterval timeDiff = currentTime - lastOffsetCaptured;
+    if(timeDiff <= 0.1) {
+        RLog(@"SKIPPING");
+        return;
+    }
+    RLog(@"NOT SKPPING");
+
+    AXNManager *axonManager = [%c(AXNManager) sharedInstance];
+
+
+    NSMutableArray <NCNotificationRequest *> *requests = [NSMutableArray array];
+    NSMutableArray <NCNotificationRequest *> *oldRequests = [NSMutableArray array];
+
+    for(NSString *ident in axonManager.names.allKeys) {
+        [requests addObjectsFromArray:[axonManager requestsForBundleIdentifier:ident]];
+    }
+
+    for(NCNotificationStructuredSectionList *sectionList in self.geminiStructuredListViewController.masterList.notificationSections) {
         [oldRequests addObjectsFromArray:[sectionList allNotificationRequests]];
     }
     for(NCNotificationStructuredSectionList *sectionList in notifVC.masterList.notificationSections) {
         [requests addObjectsFromArray:[sectionList allNotificationRequests]];
     }
 
-    for(id request in oldRequests) {
+
+    for(NCNotificationRequest *request in oldRequests) {
         if(![requests containsObject:request]) {
-            [self.structuredListViewController.masterList.notificationSections[0] removeNotificationRequest:request];
+            [self.notificationRequests[request.sectionIdentifier] removeObject:request];
+            [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:request];
         }
     }
-    
+
     for(int i = 0; i < requests.count; i++) {
-        [self.structuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
+        [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:requests[i]];
+        NSString *sectionIdentifier = requests[i].sectionIdentifier;
+        if([self.notificationRequests.allKeys containsObject:sectionIdentifier]) {
+            NSMutableArray *requestsForID = self.notificationRequests[sectionIdentifier];
+            if(![requestsForID containsObject:requests[i]]) [requestsForID addObject:requests[i]];
+        }
+        else {
+            [self.notificationRequests setValue:@[requests[i]].mutableCopy forKey:sectionIdentifier];
+        }
+        if(identifier) {
+            if([sectionIdentifier isEqualToString:identifier]) {
+                [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
+            }
+        }
+        else {
+            [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
+        }
     }
-    self.structuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
+    self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
+    lastOffsetCaptured = currentTime;
 }
+
 %new
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
-  if(pinchGesture.scale <= 0.75 && !self.isSmall && contentOrientation == 1 && environmentMode == 2) {
-      if(self.childViewControllers.count < 2) {
-          /*
-          SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
-          CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
-          self.moduleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
-         [mainSwitcherVC addChildViewController:self.moduleViewController];
-          UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.moduleViewController.view.frame];
-          [scrollView addSubview:self.moduleViewController.view];
-          scrollView.translatesAutoresizingMaskIntoConstraints = NO;
-          [mainSwitcherVC.view addSubview:scrollView];
-          self.moduleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-          [scrollView.widthAnchor constraintEqualToConstant:self.moduleViewController.view.frame.size.width].active = YES;
-          [scrollView.heightAnchor constraintEqualToConstant:400].active = YES;
-          [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
-          [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
-          [self.moduleViewController.view.heightAnchor constraintEqualToConstant:1024].active = YES;
-          [self.moduleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor constant:60].active = YES;
-          scrollView.contentSize = CGSizeMake(scrollView.frame.size.width, 1024);
-           self.geminiAdditionalView = scrollView;
-           */
-          
-          
-          self.structuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
+    if(pinchGesture.scale <= 0.75 && !self.isSmall && [self sbActiveInterfaceOrientation] == 1 && environmentMode == 2) {
+        self.notificationRequests = [NSMutableDictionary dictionary];
+        if(self.childViewControllers.count < 2) {
+            switch(additionalViewSelection) {
+                case 0: {
+                    self.geminiStructuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
 
+                    [self addChildViewController:self.geminiStructuredListViewController];
+                    [self.view addSubview:self.geminiStructuredListViewController.view];
+                    
+                    self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+                    [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
+                    [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:self.geminiStructuredListViewController.view.frame.size.height].active = YES;
+                    [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.view.frame.size.width].active = YES;
+                    self.geminiAdditionalView = self.geminiStructuredListViewController.view;
 
-          [self addChildViewController:self.structuredListViewController];
-          [self.view addSubview:self.structuredListViewController.view];
-          self.structuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-          [self.structuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
-          [self.structuredListViewController.view.heightAnchor constraintEqualToConstant:self.structuredListViewController.view.frame.size.height].active = YES;
-          [self.structuredListViewController.view.widthAnchor constraintEqualToConstant:self.structuredListViewController.view.frame.size.width].active = YES;
-          self.geminiAdditionalView = self.structuredListViewController.view;
-          
-          self.structuredListViewController.delegate = notifVC.delegate;
-          self.structuredListViewController.deviceAuthenticated = YES;
-          self.geminiAdditionalView.clipsToBounds = YES;
-          
-          [self insertNotificationsForBundleIdentifier:nil];
+                    self.geminiStructuredListViewController.delegate = notifVC.delegate;
+                    self.geminiStructuredListViewController.deviceAuthenticated = YES;
+                    self.geminiAdditionalView.clipsToBounds = YES;
+
+                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier];
+                    break;
+                }
+                case 1: {
+                    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
+                    CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
+                    
+                    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
+                    
+                    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
+                    
+                    UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.geminiModuleViewController.view.frame];
+                    [scrollView addSubview:self.geminiModuleViewController.view];
+                    [mainSwitcherVC.view addSubview:scrollView];
+                    
+                    scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+                    self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+                    [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
+                    [scrollView.heightAnchor constraintEqualToConstant:400].active = YES;
+                    [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
+                    [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
+                    
+                    [self.geminiModuleViewController.view.heightAnchor constraintEqualToConstant:1024].active = YES;
+                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor constant:0].active = YES;
+                    
+                    scrollView.contentSize = CGSizeMake(scrollView.frame.size.width, 1024); //need an actual way to get the height of the moduleViewController, or what is is supposed to be, so i can set the contentSize height and moduleViewController frame height accordingly instead of just using 1024 as an arbitrary number that just happens to be large enough for my cc setup.
+                    self.geminiAdditionalView = scrollView;
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
         }
-      
-      
-      for(UIViewController *childViewController in self.moduleViewController.childViewControllers) {
-          UIViewController *childChildViewController = childViewController.childViewControllers[0];
-          [childChildViewController viewWillAppear:NO];
-          if([childChildViewController respondsToSelector:@selector(setState:)]) {
-              [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
-          }
-      }
 
-      
-      
-      [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-          self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
-          self.view.transform = CGAffineTransformMakeScale(.75, .75);
-          [notifVC revealNotificationHistory:YES animated:NO];
-          for(int i = 0; i < [notifVC.masterList.notificationSections count]; i++) {
-              NCNotificationStructuredSectionList *notifList = notifVC.masterList.notificationSections[i];
-              [notifList.sectionListView setRevealed:YES];
+        for(UIViewController *childViewController in self.geminiModuleViewController.childViewControllers) {
+            UIViewController *childChildViewController = childViewController.childViewControllers[0];
+            [childChildViewController viewWillAppear:NO];
+            if([childChildViewController respondsToSelector:@selector(setState:)]) {
+                [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
+            }
+        }
 
-              notifList.sectionListView.frame = CGRectMake(notifList.sectionListView.frame.origin.x, notifList.sectionListView.frame.origin.y /*+ 643*/, notifList.sectionListView.frame.size.width, notifList.sectionListView.frame.size.height);
+        self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
+        self.geminiAdditionalView.alpha = 1;
+        [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
+            self.view.transform = CGAffineTransformMakeScale(.75, .75);
 
-              self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+            self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
 
+            for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
+                if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
+                    SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
+                    SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
+                    SBAppLayout *appLayout = snapshotView.appLayout;
+                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                    self.currentIdentifier = displayItem.bundleIdentifier;
+                    RLog(@"identifier %@", self.currentIdentifier);
+                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier];
+                    headerView.showingNotifs = YES;
+                    break;
+                }
+            }
+            return;
+        } completion:nil];
+        mainSwitcherVC.isSmall = YES;
+    }
+    else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
+        [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 100, self.view.frame.size.width, self.view.frame.size.height);
+            self.view.transform = CGAffineTransformMakeScale(1, 1);
 
-              [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-                  self.geminiAdditionalView.alpha = 1;
-              } completion:nil];
+            self.geminiAdditionalView.alpha = 0;
+            self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
 
-              for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
-                  if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
-                      [notifVC revealNotificationHistory:YES animated:NO];
-                      [notifList.sectionListView setRevealed:YES];
-                      NSArray *allNotificationRequests = [notifList allNotificationRequests];
-                      SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
-                      SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-                      SBAppLayout *appLayout = snapshotView.appLayout;
-                      SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                      NSString *identifier = displayItem.bundleIdentifier;
-                      AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-                      [axonManager showNotificationRequestsForBundleIdentifier:identifier];
-                      [notifList.sectionListView setRevealed:YES];
-
-                      //removes notifications that aren't a certain app
-                      for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
-                          if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-                              [removedRequests addObject:notificationRequest];
-                              [notifVC removeNotificationRequest:notificationRequest];
-                          }
-                      }
-
-                      //inserts removed notifications back into the notification center
-                      NSMutableArray *notifsToAddBack = [NSMutableArray array];
-                      for(NCNotificationRequest *notificationRequest in removedRequests) {
-                          if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
-                              [notifVC insertNotificationRequest:notificationRequest];
-                              [notifsToAddBack addObject:notificationRequest];
-                          }
-                      }
-                      for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
-                          [removedRequests removeObject:notificationRequest];
-                      }
-                      headerView.showingNotifs = YES;
-                      break;
-                  }
-              }
-          }
-          return;
-      } completion:nil];
-      mainSwitcherVC.isSmall = YES;
-  }
-  else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && contentOrientation == 1) {
-      [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-          self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 100, self.view.frame.size.width, self.view.frame.size.height);
-          self.view.transform = CGAffineTransformMakeScale(1, 1);
-          self.geminiAdditionalView.alpha = 0;
-          return;
-      } completion:nil];
-      mainSwitcherVC.isSmall = NO;
-  }
+            return;
+        } completion:nil];
+        mainSwitcherVC.isSmall = NO;
+    }
 }
 
 %new
 -(void)GMNShowTestNotifications {
-  //add notifications for currently opened apps
-  NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
-  for(int i = 0; i < [mainAppLayouts count]; i++ ){
-    SBAppLayout *appLayout = mainAppLayouts[i];
-    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-    NSString *identifier = displayItem.bundleIdentifier;
-    int ii = i;
-    for(int b = 0; b < [mainAppLayouts count] - 0; b++) {
-      void *handle = dlopen("/usr/lib/libnotifications.dylib", RTLD_LAZY);
-      if (handle != NULL) {
-
-         NSString *uid = [[NSUUID UUID] UUIDString];
-          [objc_getClass("CPNotification") showAlertWithTitle:@"Holy Smokes!"
-                                                      message:[NSString stringWithFormat:@"Notification #%d", ii + 1]
-                                                     userInfo:@{@"" : @""}
-                                                   badgeCount:1
-                                                    soundName:nil //research UNNotificationSound
-                                                        delay:1.00 //cannot be zero & cannot be < 60 if repeats is YES
-                                                      repeats:NO
-                                                     bundleId:identifier
-                                                         uuid:uid //specify if you need to use hideAlertWithBundleId and store the string for later use
-                                                       silent:NO];
-
-           dlclose(handle);
-      }
+    //add notifications for currently opened apps
+    NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
+    for(int i = 0; i < [mainAppLayouts count]; i++ ){
+        SBAppLayout *appLayout = mainAppLayouts[i];
+        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+        NSString *identifier = displayItem.bundleIdentifier;
+        int ii = i;
+        for(int b = 0; b < [mainAppLayouts count] - 0; b++) {
+            void *handle = dlopen("/usr/lib/libnotifications.dylib", RTLD_LAZY);
+            if (handle != NULL) {
+                NSString *uid = [[NSUUID UUID] UUIDString];
+                [objc_getClass("CPNotification") showAlertWithTitle:@"Holy Smokes!"
+                                                            message:[NSString stringWithFormat:@"Notification #%d", ii + 1]
+                                                           userInfo:@{@"" : @""}
+                                                         badgeCount:1
+                                                          soundName:nil
+                                                              delay:1.00
+                                                            repeats:NO
+                                                           bundleId:identifier
+                                                               uuid:uid
+                                                             silent:NO];
+                dlclose(handle);
+            }
+        }
     }
-
-  }
 }
 %end
 
@@ -255,7 +273,7 @@ BOOL reduceAnimations;
 -(void)setToEnvironmentMode:(long long)arg1 {
     environmentMode = arg1;
     %orig;
-    if (arg1 != 2 && contentOrientation == 1){
+    if (arg1 != 2 && [mainSwitcherVC sbActiveInterfaceOrientation] == 1){ //checks if switcher isn't showing and content orientation is portrait;
         mainSwitcherVC = [%c(SBMainSwitcherViewController) sharedInstance];
         if (mainSwitcherVC.isSmall){
             mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 100, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
@@ -263,110 +281,75 @@ BOOL reduceAnimations;
             mainSwitcherVC.isSmall = NO;
         }
         mainSwitcherVC.geminiAdditionalView.alpha = 0;
+        mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
     }
 }
 %end
 
 %hook SBFluidSwitcherItemContainerHeaderView
 %property (nonatomic,assign) BOOL showingNotifs;
+
 -(id)initWithFrame:(CGRect)arg1 {
     [headerViews addObject:self];
     return %orig;
 }
 -(void)setTextAlpha:(CGFloat)arg1 {
-  %orig;
-  if(arg1 >= 0.9 && ![self showingNotifs] && mainSwitcherVC.isSmall && !isScrollingFast) {
-
-      //for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections) {
-        //[notifVC revealNotificationHistory:YES animated:NO];
-        //[notifList.sectionListView setRevealed:YES];
-        /*SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
+    %orig;
+    if(arg1 >= 0.9 && ![self showingNotifs] && mainSwitcherVC.isSmall && !isScrollingFast) {
+        SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
         SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
         SBAppLayout *appLayout = snapshotView.appLayout;
+        if(![mainSwitcherVC.contentViewController.visibleItemContainers.allKeys containsObject:appLayout]) {
+            SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+            NSString *identifier = displayItem.bundleIdentifier;
+            RLog(@"identifier is not showing %@", identifier);
+            return;
+        }
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-        NSString *identifier = displayItem.bundleIdentifier;
-        AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-        [axonManager showNotificationRequestsForBundleIdentifier:identifier];
-        allNotificationRequests  = [NSMutableArray array];
-        for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
-          for(id req in notifList.allNotificationRequests){
-            [allNotificationRequests addObject:req];
-            [notifList.sectionListView setRevealed:YES];
-          }
-        }
-        //inserts removed notifications back into the notification center
-        NSMutableArray *notifsToAddBack = [NSMutableArray array];
-        for(NCNotificationRequest *notificationRequest in removedRequests) {
-          if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
-            [notifVC insertNotificationRequest:notificationRequest];
-            [notifsToAddBack addObject:notificationRequest];
-          }
-        }
-        for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
-          [removedRequests removeObject:notificationRequest];
-        }
-
-        BOOL axnAllowChangesOld;
-        if([notifVC respondsToSelector:@selector(axnAllowChanges)]){
-          axnAllowChangesOld = notifVC.axnAllowChanges;
-          notifVC.axnAllowChanges = YES;
-        }
-        //removes notifications that aren't a certain app
-        for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
-          if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-            [removedRequests addObject:notificationRequest];
-            [notifVC removeNotificationRequest:notificationRequest];
-          }
-        }
-        if([notifVC respondsToSelector:@selector(axnAllowChanges)]){
-          notifVC.axnAllowChanges = axnAllowChangesOld;
-        }
-      //}
-      self.showingNotifs = YES;*/
-  //}
-      /*
-  else if (arg1 < 0.9 && [self showingNotifs]){
-    if(![notifVC respondsToSelector:@selector(axnAllowChanges)]) {
-      allNotificationRequests  = [NSMutableArray array];
-      for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
-        for(id req in notifList.allNotificationRequests){
-          [allNotificationRequests addObject:req];
-        }
-      }
-      SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)self.superview;
-      SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-      SBAppLayout *appLayout = snapshotView.appLayout;
-      SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-      NSString *identifier = displayItem.bundleIdentifier;
-      for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
-        if([notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-          [removedRequests addObject:notificationRequest];
-          [notifVC removeNotificationRequest:notificationRequest];
-        }
-      }
+        mainSwitcherVC.currentIdentifier = displayItem.bundleIdentifier;
+        
+        [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+        self.showingNotifs = YES;
     }
-
-    self.showingNotifs = NO;*/
-  }
+    else if (arg1 < 0.9 && [self showingNotifs]){
+        self.showingNotifs = NO;
+    }
 }
 %end
 
 %hook NCNotificationStructuredListViewController
 -(id)init {
-    if(!notifVC) notifVC = self;
+    if(!notifVC) notifVC = self; //checks if notifvc is already set to prevent my custom notifvc from being set as the notifvc
     return %orig;
 }
+
+//updates my custom notifvc when a notification is received or deleted
 -(void)insertNotificationRequest:(id)arg1 {
     %orig;
-    [mainSwitcherVC insertNotificationsForBundleIdentifier:nil];
+    if([self respondsToSelector:@selector(axnAllowChanges)]) {
+        if(self.axnAllowChanges) {
+            [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+        }
+    }
+    else {
+        [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+    }
 }
 -(void)removeNotificationRequest:(id)arg1 {
     %orig;
-    [mainSwitcherVC insertNotificationsForBundleIdentifier:nil];
+    if([self respondsToSelector:@selector(axnAllowChanges)]) {
+        if(self.axnAllowChanges) {
+            [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+        }
+    }
+    else {
+        [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+    }
 }
 %end
 
 %hook GeminiSwitcherView
+//checks if a hitTest is inside the bounds of a subview, namely, the geminiAdditionalView even if it is outside the bounds of its superview :)
 -(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     id orig = %orig;
     if(self == mainSwitcherVC.view) {
@@ -401,71 +384,38 @@ BOOL reduceAnimations;
         CGFloat scrollSpeed = fabs(scrollSpeedNotAbs);
         if (scrollSpeed > 0.5) {
             isScrollingFast = YES;
-        } else {
-            isScrollingFast = NO;
-            if(mainSwitcherVC.isSmall && notifVC.view.hidden){
-            }
-            /*for(NCNotificationStructuredSectionList *notifList in notifVC.masterList.notificationSections){
-              for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
-                if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
-                  [notifVC revealNotificationHistory:YES animated:NO];
-                  [notifList.sectionListView setRevealed:YES];
-                  NSArray *allNotificationRequests = [notifList allNotificationRequests];
-                  SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
-                  SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
-                  SBAppLayout *appLayout = snapshotView.appLayout;
-                  SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                  NSString *identifier = displayItem.bundleIdentifier;
-                  AXNManager *axonManager = [%c(AXNManager) sharedInstance];
-                  [axonManager showNotificationRequestsForBundleIdentifier:identifier];
-                  [notifList.sectionListView setRevealed:YES];
-                  if(!identifier){
-                    continue;
-                  }
-                  //removes notifications that aren't a certain app
-                  for(NCNotificationRequest *notificationRequest in allNotificationRequests) {
-                    if(![notificationRequest.sectionIdentifier isEqualToString:identifier]) {
-                      [removedRequests addObject:notificationRequest];
-                      [notifVC removeNotificationRequest:notificationRequest];
-                    }
-                  }
-
-                  //inserts removed notifications back into the notification center
-                  NSMutableArray *notifsToAddBack = [NSMutableArray array];
-                  for(NCNotificationRequest *notificationRequest in removedRequests) {
-                    if([notificationRequest.sectionIdentifier isEqualToString:identifier]){
-                      [notifVC insertNotificationRequest:notificationRequest];
-                      [notifsToAddBack addObject:notificationRequest];
-                    }
-                  }
-                  for(NCNotificationRequest *notificationRequest in notifsToAddBack) {
-                    [removedRequests removeObject:notificationRequest];
-                  }
-                  headerView.showingNotifs = YES;
-                  break;
-                }
-              }
-            }*/
         }
+        else {
+            isScrollingFast = NO;
+            for(SBFluidSwitcherItemContainerHeaderView *headerView in headerViews.reverseObjectEnumerator){
+                if(headerView.textAlpha > 0.9 && !headerView.showingNotifs){
+                    SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)headerView.superview;
+                    SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
+                    SBAppLayout *appLayout = snapshotView.appLayout;
+                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                    
+                    if(![mainSwitcherVC.contentViewController.visibleItemContainers.allKeys containsObject:appLayout]) { //checks if the identifier could possibly be visible; if not it gets skipped;
+                        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                        NSString *identifier = displayItem.bundleIdentifier;
+                        RLog(@"identifier is not showing %@", identifier);
+                        continue;
+                    }
+                    mainSwitcherVC.currentIdentifier = displayItem.bundleIdentifier;
 
+                    [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+                    headerView.showingNotifs = YES;
+                    break;
+                }
+            }
+        }
         lastOffset = currentOffset;
         lastOffsetCapture = currentTime;
-    }
-}
-
--(void)_setScrolling:(BOOL)arg1 {
-    %orig;
-    if(isScrollingFast && mainSwitcherVC.isSmall && !arg1){
-        
-    }
-    
-    if(!arg1){
-
     }
 }
 %end
 
 %hook NCNotificationListView
+//removes insert/remov-ing notification animations to make it look, imo, smoother when scrolling through with the notification view enabled;
 -(void)insertViewAtIndex:(NSUInteger)arg1 animated:(BOOL)arg2 {
     if(mainSwitcherVC.isSmall && reduceAnimations){
         %orig(arg1, NO);
@@ -481,18 +431,6 @@ BOOL reduceAnimations;
     else {
         %orig;
     }
-}
-%end
-
-%hook AXNManager
--(void)showNotificationRequest:(id)arg1 {
-    %orig;
-}
-%end
-
-%hook SBFluidSwitcherAnimationSettings
--(void)setStackedSwitcherTrackingSettings:(id)arg1 {
-    %orig(nil);
 }
 %end
 %end
@@ -561,24 +499,31 @@ BOOL reduceAnimations;
 
 static void loadPrefs(){
     NSMutableDictionary *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/User/Library/Preferences/com.galacticdev.geminiprefs.plist"];
-    isEnabled = [prefs objectForKey:@"isEnabled"] ? [[prefs objectForKey:@"isEnabled"] boolValue] : YES;
-    reduceAnimations  = [prefs objectForKey:@"reduceAnimations"] ? [[prefs objectForKey:@"reduceAnimations"] boolValue] : NO;
+    isEnabled = prefs[@"isEnabled"] ? [prefs[@"isEnabled"] boolValue] : YES;
+    reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO;
+    additionalViewSelection = prefs[@"additionalViewSelection"] ? [prefs[@"additionalViewSelection"] intValue] : 0;
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     loadPrefs();
+    
+    if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
+        [mainSwitcherVC.childViewControllers[1] removeFromParentViewController];
+        [mainSwitcherVC.view.subviews[1] removeFromSuperview];
+    }
 }
 
 
 %ctor {
     loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+    
     if(isEnabled) {
         %init(Main);
         headerViews = [NSMutableArray array];
-        removedRequests = [NSMutableArray array];
-    }
-    if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
-        %init(Sylph);
+        
+        if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
+            %init(Sylph);
+        }
     }
 }
