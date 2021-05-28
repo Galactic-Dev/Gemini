@@ -37,7 +37,7 @@ NSInteger additionalViewSelection;
 //supposedly fixes some modules not updating; this is the same code that runs after setting up the vc in the handlePinch: method 
 -(void)addChildViewController:(UIViewController *)viewController {
     %orig;
-    if(self != mainSwitcherVC.geminiModuleViewController) {
+    if(self == mainSwitcherVC.geminiModuleViewController) {
         [viewController.childViewControllers[0] viewWillAppear:NO];
     }
 }
@@ -81,13 +81,12 @@ NSInteger additionalViewSelection;
 %new -(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier {
     UIView *view = [self.view hitTest:self.view.center withEvent:nil];
     if(view.superview.class == %c(SBAppSwitcherPageView)) {
-        RLog(@"success");
         SBAppSwitcherPageView *pageView = (SBAppSwitcherPageView *)view.superview;
         SBAppSwitcherReusableSnapshotView *snapshotView = pageView.view;
         SBAppLayout *appLayout = snapshotView.appLayout;
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+        
         NSString *actualIdentifier = displayItem.bundleIdentifier;
-        RLog(@"center ident %@", actualIdentifier);
         if([identifier isEqualToString:actualIdentifier]) {
             return YES;
         }
@@ -151,6 +150,8 @@ NSInteger additionalViewSelection;
 %new
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
     if(pinchGesture.scale <= 0.75 && !self.isSmall && [self sbActiveInterfaceOrientation] == 1 && environmentMode == 2) {
+        mainSwitcherVC.isSmall = YES;
+
         self.notificationRequests = [NSMutableDictionary dictionary];
         if(self.childViewControllers.count < 2) {
             switch(additionalViewSelection) {
@@ -161,9 +162,21 @@ NSInteger additionalViewSelection;
                     [self.view addSubview:self.geminiStructuredListViewController.view];
                     
                     self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-                    [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
-                    [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:self.geminiStructuredListViewController.view.frame.size.height].active = YES;
+                    self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
+                    
+                    
+                    CGFloat switcherHeight = self.view.frame.size.height * 0.75;
+                    CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+                    CGFloat height = (screenHeight - switcherHeight) + 100;
+                    [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
+                    [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:height].active = YES;
                     [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.view.frame.size.width].active = YES;
+                    
+                    [self.geminiStructuredListViewController.masterListView.topAnchor constraintEqualToAnchor:self.geminiStructuredListViewController.view.topAnchor].active = YES;
+                    [self.geminiStructuredListViewController.masterListView.heightAnchor constraintEqualToConstant:height].active = YES;
+
+                    [self.geminiStructuredListViewController.masterListView.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.masterListView.frame.size.width].active = YES;
+                    
                     self.geminiAdditionalView = self.geminiStructuredListViewController.view;
 
                     self.geminiStructuredListViewController.delegate = notifVC.delegate;
@@ -187,13 +200,18 @@ NSInteger additionalViewSelection;
                     
                     scrollView.translatesAutoresizingMaskIntoConstraints = NO;
                     self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+                    
+                    CGFloat switcherHeight = self.view.frame.size.height * 0.75;
+                    CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+                    CGFloat height = (screenHeight - switcherHeight) + 100;
+                    
                     [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
-                    [scrollView.heightAnchor constraintEqualToConstant:400].active = YES;
+                    [scrollView.heightAnchor constraintEqualToConstant:height].active = YES;
                     [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
                     [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     
                     [self.geminiModuleViewController.view.heightAnchor constraintEqualToConstant:1024].active = YES;
-                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor constant:0].active = YES;
+                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor].active = YES;
                     
                     scrollView.contentSize = CGSizeMake(scrollView.frame.size.width, 1024); //need an actual way to get the height of the moduleViewController, or what is is supposed to be, so i can set the contentSize height and moduleViewController frame height accordingly instead of just using 1024 as an arbitrary number that just happens to be large enough for my cc setup.
                     self.geminiAdditionalView = scrollView;
@@ -208,7 +226,8 @@ NSInteger additionalViewSelection;
         for(UIViewController *childViewController in self.geminiModuleViewController.childViewControllers) {
             UIViewController *childChildViewController = childViewController.childViewControllers[0];
             [childChildViewController viewWillAppear:NO];
-            if([childChildViewController respondsToSelector:@selector(setState:)]) {
+            
+            if([childChildViewController respondsToSelector:@selector(setState:)]) { //fixes music player being a weird size when dismissed
                 [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
             }
         }
@@ -221,30 +240,8 @@ NSInteger additionalViewSelection;
 
             self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
             
-            for(SBAppLayout *appLayout in self.contentViewController.visibleItemContainers.allKeys) {
-                SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                NSString *identifier = displayItem.bundleIdentifier;
-                
-                if(appLayout.geminiIsShowingNotifs && identifier != self.currentIdentifier) {
-                    appLayout.geminiIsShowingNotifs = NO;
-                }
-                else if(appLayout.geminiIsShowingNotifs) {
-                    continue;
-                }
-
-                if([self bundleIdentifierIsInCenterOfSwitcher:identifier]) {
-                    self.currentIdentifier = identifier;
-                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier];
-                    appLayout.geminiIsShowingNotifs = YES;
-                    break;
-                }
-                else {
-                    continue;
-                }
-            }
             return;
         } completion:nil];
-        mainSwitcherVC.isSmall = YES;
     }
     else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
@@ -256,7 +253,8 @@ NSInteger additionalViewSelection;
 
             return;
         } completion:nil];
-        mainSwitcherVC.isSmall = NO;
+        self.isSmall = NO;
+        self.currentIdentifier = nil;
     }
 }
 
@@ -300,6 +298,7 @@ NSInteger additionalViewSelection;
             mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 100, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
             mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             mainSwitcherVC.isSmall = NO;
+            mainSwitcherVC.currentIdentifier = nil;
         }
         mainSwitcherVC.geminiAdditionalView.alpha = 0;
         mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
@@ -365,12 +364,11 @@ NSInteger additionalViewSelection;
 %end
 
 %hook SBAppSwitcherScrollView
--(void)setContentOffset:(CGPoint)arg1{
+-(void)setContentOffset:(CGPoint)currentOffset{
     %orig;
-    CGPoint currentOffset = arg1;
     NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
-
     NSTimeInterval timeDiff = currentTime - lastOffsetCapture;
+    
     if(timeDiff > 0.1) {
         CGFloat distance = currentOffset.x - lastOffset.x;
         CGFloat scrollSpeedNotAbs = (distance * 10) / 1000;
@@ -378,9 +376,11 @@ NSInteger additionalViewSelection;
         CGFloat scrollSpeed = fabs(scrollSpeedNotAbs);
         if (scrollSpeed > 0.5) {
             isScrollingFast = YES;
+            RLog(@"SCROLLING FAST");
         }
         else {
             isScrollingFast = NO;
+            RLog(@"SCROLLING SLOW");
             
             for(SBAppLayout *appLayout in mainSwitcherVC.contentViewController.visibleItemContainers.allKeys) {
                 SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
@@ -395,7 +395,9 @@ NSInteger additionalViewSelection;
 
                 if([mainSwitcherVC bundleIdentifierIsInCenterOfSwitcher:identifier]) {
                     mainSwitcherVC.currentIdentifier = identifier;
+                    
                     [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+                    
                     appLayout.geminiIsShowingNotifs = YES;
                     break;
                 }
@@ -403,10 +405,28 @@ NSInteger additionalViewSelection;
                     continue;
                 }
             }
+            if(!mainSwitcherVC.currentIdentifier) {
+                [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+            }
         }
         lastOffset = currentOffset;
         lastOffsetCapture = currentTime;
     }
+}
+%end
+
+%hook SBFluidSwitcherViewController
+
+//updates the notifications when the switcher is first opened and hasn't scrolled yet
+-(void)_scrollToAppLayout:(SBAppLayout *)appLayout animated:(BOOL)animated completion:(id)completion {
+    %orig;
+    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+    NSString *identifier = displayItem.bundleIdentifier;
+    
+    mainSwitcherVC.currentIdentifier = identifier;
+    appLayout.geminiIsShowingNotifs = YES;
+    RLog(@"CALLING WITH IDENT %@", identifier);
+    [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
 }
 %end
 

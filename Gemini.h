@@ -7,9 +7,13 @@
 -(void)addObserver:(id)arg1 selector:(SEL)arg2 name:(id)arg3 object:(id)arg4;
 @end
 
+@interface SBAppSwitcherScrollView : UIScrollView
+@end
+
 @interface SBFluidSwitcherViewController : UIViewController
 @property (nonatomic,retain) UIView *contentView;
 @property (strong, nonatomic) NSMutableDictionary *visibleItemContainers;
+@property (strong, nonatomic) SBAppSwitcherScrollView *scrollView;
 @end
 
 @interface SBDeckSwitcherViewController : SBFluidSwitcherViewController
@@ -36,7 +40,6 @@
 @end
 
 @interface NCNotificationListView : UIScrollView
--(void)setRevealed:(BOOL)arg1;
 @end
 
 @interface NCNotificationStructuredSectionList : NSObject
@@ -79,14 +82,7 @@
 -(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier;
 @end
 
-@interface SBFluidSwitcherContentView : UIView
-@end
-
-@interface SBTransitionSwitcherModifierEvent
-@end
-
 @interface AXNView : UIView
--(void)refresh;
 @end
 
 @interface AXNManager : NSObject
@@ -95,11 +91,6 @@
 @property (nonatomic, weak) AXNView *view;
 -(NSMutableArray *)requestsForBundleIdentifier:(NSString *)arg1;
 @property (strong, nonatomic) NSMutableDictionary *names;
-@end
-
-@interface SBFluidSwitcherItemContainerHeaderView : UIView
-@property (nonatomic, assign) BOOL showingNotifs;
-@property (assign,nonatomic) double textAlpha;
 @end
 
 @interface CPNotification : NSObject
@@ -123,7 +114,7 @@
 @end
 
 @interface SBAppSwitcherReusableSnapshotView
-@property (nonatomic,retain) SBAppLayout * appLayout;
+@property (nonatomic,retain) SBAppLayout *appLayout;
 @end
 
 @interface SBAppSwitcherPageView
@@ -131,22 +122,4 @@
 @end
 
 @interface GeminiSwitcherView : UIView
-@end
-
-@interface CSCombinedListViewController
--(UIEdgeInsets)_listViewDefaultContentInsets;
--(void)_updateListViewContentInset;
-@end
-
-@interface BSUIScrollView : UIScrollView
--(void)_setScrolling:(BOOL)arg1 ;
-@end
-
-@interface SBAppSwitcherScrollView : BSUIScrollView
-@end
-
-@interface CSAdjunctListView : UIView
-@end
-
-@interface CSNotificationAdjunctListViewController
 @end
