@@ -70,7 +70,6 @@ OBWelcomeController *welcomeController;
 
 -(void)enabledSwitchChanged:(UISwitch *)enabledSwitch {
 	if (enabledSwitch.on){
-		RLog(@"SWITCH IS ON");
 		//Sleeping to give time for UISwitch animating to complete. It just looks cleaner that way.
 		NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
 		NSMutableDictionary *settings = [NSMutableDictionary dictionary];
@@ -82,7 +81,6 @@ OBWelcomeController *welcomeController;
 		self.navigationItem.rightBarButtonItem.tintColor = [UIColor redColor];
 	}
 	else {
-		RLog(@"SWITCH IS OFF");
 		NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
 		NSMutableDictionary *settings = [NSMutableDictionary dictionary];
 		[settings addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:path]];

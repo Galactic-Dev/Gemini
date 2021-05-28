@@ -6,10 +6,8 @@ priorities:
 
 
 Bugs:
--̶ ̶n̶o̶t̶i̶f̶i̶c̶a̶t̶i̶o̶n̶ ̶f̶i̶l̶t̶e̶r̶i̶n̶g̶ ̶n̶o̶t̶ ̶w̶o̶r̶k̶i̶n̶g̶ ̶s̶o̶m̶e̶t̶i̶m̶e̶s̶ ̶(̶1̶0̶)̶
 - cc music player not closing when tapping (10)
 - needs blurred bg for when opening expanded cc modules (5)
--̶ ̶f̶i̶x̶ ̶s̶c̶r̶o̶l̶l̶ ̶v̶i̶e̶w̶ ̶n̶o̶t̶ ̶h̶a̶v̶i̶n̶g̶ ̶a̶ ̶l̶a̶r̶g̶e̶ ̶e̶n̶o̶u̶g̶h̶ ̶c̶o̶n̶t̶e̶n̶t̶ ̶s̶i̶z̶e̶ ̶f̶o̶r̶ ̶n̶o̶t̶i̶f̶s̶ ̶(̶1̶0̶)̶
 - fix not all notifications showing until you start to scroll (8)
 - screen recording module not syncing across different cc's (4)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)

@@ -98,10 +98,8 @@ NSInteger additionalViewSelection;
     NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
     NSTimeInterval timeDiff = currentTime - lastOffsetCaptured;
     if(timeDiff <= 0.1) {
-        RLog(@"SKIPPING");
         return;
     }
-    RLog(@"NOT SKPPING");
 
     AXNManager *axonManager = [%c(AXNManager) sharedInstance];
 
@@ -376,12 +374,9 @@ NSInteger additionalViewSelection;
         CGFloat scrollSpeed = fabs(scrollSpeedNotAbs);
         if (scrollSpeed > 0.5) {
             isScrollingFast = YES;
-            RLog(@"SCROLLING FAST");
         }
         else {
             isScrollingFast = NO;
-            RLog(@"SCROLLING SLOW");
-            
             for(SBAppLayout *appLayout in mainSwitcherVC.contentViewController.visibleItemContainers.allKeys) {
                 SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
                 NSString *identifier = displayItem.bundleIdentifier;
@@ -425,7 +420,6 @@ NSInteger additionalViewSelection;
     
     mainSwitcherVC.currentIdentifier = identifier;
     appLayout.geminiIsShowingNotifs = YES;
-    RLog(@"CALLING WITH IDENT %@", identifier);
     [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
 }
 %end
