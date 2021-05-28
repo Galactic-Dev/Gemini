@@ -1,0 +1,15 @@
+export PREFIX=$(THEOS)/toolchain/Xcode.xctoolchain/usr/bin/
+
+export TARGET = simulator:clang:13.7
+export ARCHS = x86_64
+
+INSTALL_TARGET_PROCESSES = SpringBoard
+
+include $(THEOS)/makefiles/common.mk
+
+TWEAK_NAME = Gemini
+
+Gemini_FILES = Gemini.x *.m
+Gemini_CFLAGS = -fobjc-arc -Wno-nullability-completeness
+
+include $(THEOS_MAKE_PATH)/tweak.mk

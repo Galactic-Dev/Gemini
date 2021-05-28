@@ -25,3 +25,18 @@ Features:
 - change additional view if there are no notifications or no music playing (4)
 - make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
 - show notification badge in header view of app page view (4)
+
+
+Devices that i've checked sizing with:
+iPhone XR/iPhone 11 - irl & sim✅
+iPhone 11 Pro max/iPhone XS Max - sim ✅
+iPhone SE 1st gen - sim (doesn't work well)
+iPhone 8/iPhone 7 - sim (works ok needs a little bit more y offset)
+iPhone 8+/iPhone 7+ - sim (works of needs a little bit more y offset)
+iPhone X/iPhone XS/iPhone 11 Pro  - sim ✅
+Need to test:
+iPhone 12 Pro Max
+iPhone 12/12 PRO
+iPhone 12 Mini
+iPhone SE 2020
+

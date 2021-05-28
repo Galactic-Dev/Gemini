@@ -219,6 +219,24 @@ NSInteger additionalViewSelection;
                     break;
                 }
             }
+            
+            //this is for testing how the additional view will look on different sized devices
+            if(TARGET_OS_SIMULATOR) {
+                UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
+                view.backgroundColor = UIColor.redColor;
+                [self.view addSubview:view];
+                
+                view.translatesAutoresizingMaskIntoConstraints = NO;
+                
+                CGFloat switcherHeight = (self.view.frame.size.height ) * 0.75;
+                CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+                CGFloat height = (screenHeight - switcherHeight) + 100;
+                [view.widthAnchor constraintEqualToConstant:self.view.frame.size.width].active = YES;
+                [view.heightAnchor constraintEqualToConstant:height].active = YES;
+                [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
+                self.geminiAdditionalView = view;
+            }
+            
         }
 
         for(UIViewController *childViewController in self.geminiModuleViewController.childViewControllers) {
