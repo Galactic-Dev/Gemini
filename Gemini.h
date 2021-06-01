@@ -2,6 +2,7 @@
 #import <Foundation/Foundation.h>
 #include <RemoteLog.h>
 #include <dlfcn.h>
+#import "UIDevice+notchedDevice.h"
 
 @interface NSDistributedNotificationCenter : NSNotificationCenter
 -(void)addObserver:(id)arg1 selector:(SEL)arg2 name:(id)arg3 object:(id)arg4;
@@ -20,6 +21,13 @@
 @end
 
 //Control Center Stuff
+@interface MediaControlsVolumeViewController : UIViewController
+@end
+
+@interface MRUControlCenterViewController : UIViewController
+-(void)setState:(NSInteger)arg1;
+@end
+
 @interface SBControlCenterSystemAgent : NSObject
 @end
 
@@ -37,6 +45,7 @@
 -(void)_updateModuleControllers;
 -(void)_updatePositionProviders;
 -(void)_updateEnabledModuleIdentifiers;
+-(void)dismissPresentedContentAnimated:(BOOL)arg1 completion:(id)arg2;
 @end
 
 @interface NCNotificationListView : UIScrollView
@@ -80,6 +89,7 @@
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture;
 @property (nonatomic, assign) BOOL isSmall;
 -(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier;
+@property (strong, nonatomic) UIVisualEffectView *geminiBlurView;
 @end
 
 @interface AXNView : UIView

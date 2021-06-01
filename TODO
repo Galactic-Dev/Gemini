@@ -6,8 +6,6 @@ priorities:
 
 
 Bugs:
-- cc music player not closing when tapping (10)
-- needs blurred bg for when opening expanded cc modules (5)
 - fix not all notifications showing until you start to scroll (8)
 - screen recording module not syncing across different cc's (4)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
@@ -30,13 +28,23 @@ Features:
 Devices that i've checked sizing with:
 iPhone XR/iPhone 11 - irl & sim✅
 iPhone 11 Pro max/iPhone XS Max - sim ✅
-iPhone SE 1st gen - sim (doesn't work well)
-iPhone 8/iPhone 7 - sim (works ok needs a little bit more y offset)
-iPhone 8+/iPhone 7+ - sim (works of needs a little bit more y offset)
+iPhone SE 1st gen - sim ✅ (the only issue is the switcher gets cut off a little at the top)
+iPhone 8/iPhone 7 - sim ✅
+iPhone 8+/iPhone 7+ - sim ✅
 iPhone X/iPhone XS/iPhone 11 Pro  - sim ✅
-Need to test:
-iPhone 12 Pro Max
-iPhone 12/12 PRO
-iPhone 12 Mini
-iPhone SE 2020
+iPhone 12 Pro Max - sim ✅
+iPhone 12/12 PRO - sim ✅
+iPhone 12 Mini - sim ✅
+iPhone SE 2020 - sim  ✅
 
+iOS Versions Checked With:
+iOS 13 - sim:
+    Things I know that work:
+    - pinching the switcher
+    - the size of the view is correct
+    - getting the bundle id of the current switcher item
+    Thing I believe to work bc i used to be on ios 13 when i started making this tweak:
+    - notifications(everything)
+    Things that idk if they work:
+    - Control center, exists on sim but has no modules.
+iOS 14.3 - irl ✅
