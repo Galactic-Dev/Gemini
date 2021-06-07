@@ -12,14 +12,15 @@ Bugs:
 - fix suggested app view's size getting messed up & getting covered by the additional view (4)
 
 Features:
-- option to constantly have scroll view in miniature size (7)
-- custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (9)
-- better preferences with more organization, an obwelcomecontroller, etc. (5)
-- show/hide no older notification text (2)
+- custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (10)
+- show/hide no older notification text (3)
 - automatically scroll to the first app that has notifications
-- change additional view if there are no notifications or no music playing (4) (maybe just a feature of the dynamic view instead)
-- make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
+- change additional view if there are no notifications or no music playing (6) (maybe just a feature of the dynamic view instead)
 - show notification badge in header view of app page view (4)
+
+
+- better preferences with more organization, an obwelcomecontroller, etc. (5)
+- make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
 
 
 Devices that i've checked sizing with:

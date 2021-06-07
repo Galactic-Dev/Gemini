@@ -642,6 +642,9 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.isSmall = NO;
             mainSwitcherVC.currentIdentifier = nil;
             [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+            if(additionalViewSelection == 3) {
+                [mainSwitcherVC dismissExpandedDynamicView];
+            }
         }
         mainSwitcherVC.geminiAdditionalView.alpha = 0;
         mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
@@ -876,7 +879,6 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
         for(UIViewController *viewController in mainSwitcherVC.childViewControllers.copy) {
             if(viewController.class != %c(SBDeckSwitcherViewController)) {
-                RLog(@"VC %@", viewController);
                 [viewController removeFromParentViewController];
             }
         }
