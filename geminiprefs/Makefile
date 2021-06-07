@@ -2,7 +2,7 @@ include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = GeminiPrefs
 
-GeminiPrefs_FILES = GMNRootListController.m
+GeminiPrefs_FILES = $(wildcard *.m)
 GeminiPrefs_INSTALL_PATH = /Library/PreferenceBundles
 GeminiPrefs_FRAMEWORKS = UIKit
 GeminiPrefs_PRIVATE_FRAMEWORKS = Preferences OnBoardingKit

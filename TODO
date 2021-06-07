@@ -6,7 +6,6 @@ priorities:
 
 
 Bugs:
-- fix not all notifications showing until you start to scroll (8)
 - screen recording module not syncing across different cc's (4)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
 - fix suggested app view's size getting messed up & getting covered by the additional view (4)

@@ -58,6 +58,7 @@
 @end
 
 @interface NCNotificationListView : UIScrollView
+-(void)_updateVisibleViewsForUpdatedVisibleRect:(CGRect)arg1;
 @end
 
 @interface NCNotificationStructuredSectionList : NSObject

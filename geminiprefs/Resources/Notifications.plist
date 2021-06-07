@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>enabled</key>
+			<true/>
+			<key>footerText</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.galacticdev.geminiprefs.changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>defaults</key>
+			<string>com.galacticdev.geminiprefs</string>
+			<key>enabled</key>
+			<true/>
+			<key>label</key>
+			<string>Show "No Older Notifications"</string>
+            <key>key</key>
+            <string>showNoOlderNotifications</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.galacticdev.geminiprefs.changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>defaults</key>
+			<string>com.galacticdev.geminiprefs</string>
+			<key>enabled</key>
+			<true/>
+			<key>label</key>
+			<string>Auto Scroll To Notifications</string>
+            <key>key</key>
+            <string>autoScrollToNotifs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>enabled</key>
+			<true/>
+			<key>footerText</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.galacticdev.geminiprefs.changed</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>defaults</key>
+			<string>com.galacticdev.geminiprefs</string>
+			<key>enabled</key>
+			<true/>
+			<key>label</key>
+			<string>Show All App Notifications</string>
+            <key>key</key>
+            <string>showAllAppNotifications</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Notification Options</string>
+</dict>
+</plist>

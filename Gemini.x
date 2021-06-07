@@ -62,7 +62,7 @@ BOOL dismissingMusicModule;
                 }
                 break;
             }
-            case 3: {
+            case 2: {
                 [self.heightAnchor constraintEqualToConstant:size.height].active = YES;
                 //[(UIScrollView *)self.superview.superview setContentSize:size];
                 break;
@@ -76,12 +76,12 @@ BOOL dismissingMusicModule;
 }
 -(void)addSubview:(UIView *)subview {
     %orig;
-    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+    if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
         subview.transform = CGAffineTransformMakeScale(0.95,0.95);
     }
 }
 -(id)layoutSource {
-    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+    if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
         CCUILayoutOptions *layoutOptions = [self valueForKey:@"_layoutOptions"];
         [layoutOptions setValue:@5 forKey:@"_itemSpacing"];
     }
@@ -89,7 +89,7 @@ BOOL dismissingMusicModule;
     return %orig;
 }
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
-    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+    if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
         %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
     }
     else {
@@ -352,10 +352,6 @@ BOOL dismissingMusicModule;
                     break;
                 }
                 case 2: {
-                    //music player
-                    break;
-                }
-                case 3: {
                     //dynamic
                     
                     //setup the views contained in the dynamic view
@@ -642,7 +638,7 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.isSmall = NO;
             mainSwitcherVC.currentIdentifier = nil;
             [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
-            if(additionalViewSelection == 3) {
+            if(additionalViewSelection == 2) {
                 [mainSwitcherVC dismissExpandedDynamicView];
             }
         }
@@ -794,6 +790,16 @@ BOOL dismissingMusicModule;
 -(void)removeViewAtIndex:(NSUInteger)arg1 animated:(BOOL)arg2 {
     if(mainSwitcherVC.isSmall && reduceAnimations){
         %orig(arg1, NO);
+    }
+    else {
+        %orig;
+    }
+}
+
+//fixes notification bug where notifications wouldn't show until you start to swipe :)
+-(void)_updateVisibleViewsForUpdatedVisibleRect:(CGRect)rect {
+    if(mainSwitcherVC.isSmall) {
+        %orig(mainSwitcherVC.geminiStructuredListViewController.view.bounds);
     }
     else {
         %orig;

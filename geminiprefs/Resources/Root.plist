@@ -47,55 +47,34 @@
 			<string>PSSegmentCell</string>
 			<key>defaults</key>
 			<string>com.galacticdev.geminiprefs</string>
-			<key>enabled</key>
-			<true/>
 			<key>id</key>
 			<string>segmentedCell</string>
-			<key>label</key>
-			<string></string>
-			<key>shortTitles</key>
-			<array>
-				<string>0</string>
-				<string>2</string>
-				<string>3</string>
-				<string>4</string>
-			</array>
 			<key>validTitles</key>
 			<array>
 				<string>Notifications</string>
 				<string>Control Center</string>
-				<string>Music Player</string>
-				<string> Dynamic</string>
+				<string>Dynamic</string>
 			</array>
 			<key>validValues</key>
 			<array>
 				<string>0</string>
 				<string>1</string>
 				<string>2</string>
-				<string>3</string>
 			</array>
             <key>key</key>
             <string>additionalViewSelection</string>
 		</dict>
 		<dict>
-			<key>PostNotification</key>
-			<string></string>
-			<key>bundle</key>
-			<string>BatteryUsageUI</string>
 			<key>cell</key>
 			<string>PSLinkCell</string>
-			<key>enabled</key>
-			<true/>
 			<key>id</key>
 			<string>Options</string>
 			<key>isController</key>
 			<true/>
 			<key>label</key>
 			<string>Options</string>
-			<key>lazy-bundle</key>
-			<string>/System/Library/PreferenceBundles/BatteryUsageUI.bundle</string>
-			<key>loadAction</key>
-			<string>lazyLoadBundle:</string>
+            <key>detail</key>
+            <string>GMNOptionsController</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -106,8 +85,6 @@
 			<string></string>
 		</dict>
 		<dict>
-			<key>bundle</key>
-			<string>BatteryUsageUI</string>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>enabled</key>
@@ -118,10 +95,8 @@
 			<true/>
 			<key>label</key>
 			<string>Contact &amp; Credits</string>
-			<key>lazy-bundle</key>
-			<string>/System/Library/PreferenceBundles/BatteryUsageUI.bundle</string>
-			<key>loadAction</key>
-			<string>lazyLoadBundle:</string>
+            <key>detail</key>
+            <string>GMNCreditsController</string>
 		</dict>
 		<dict>
 			<key>action</key>
