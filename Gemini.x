@@ -15,6 +15,7 @@ BOOL isScrollingFast;
 BOOL isEnabled;
 BOOL reduceAnimations;
 NSInteger additionalViewSelection;
+BOOL automaticallyPinchSwitcher;
 
 %group Main
 
@@ -49,20 +50,59 @@ BOOL dismissingMusicModule;
 }
 %end
 
+%hook CCUIModuleCollectionView
+-(CGSize)intrinsicContentSize {
+    CGSize size = %orig;
+    if(self == mainSwitcherVC.geminiModuleViewController.view) {
+        switch(additionalViewSelection) {
+            case 1: {
+                if(mainSwitcherVC.geminiAdditionalView.class == [UIScrollView class]) {
+                    [self.heightAnchor constraintEqualToConstant:size.height].active = YES;
+                    [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentSize:size];
+                }
+                break;
+            }
+            case 3: {
+                [self.heightAnchor constraintEqualToConstant:size.height].active = YES;
+                //[(UIScrollView *)self.superview.superview setContentSize:size];
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+    return size;
+}
+-(void)addSubview:(UIView *)subview {
+    %orig;
+    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+        subview.transform = CGAffineTransformMakeScale(0.95,0.95);
+    }
+}
+-(id)layoutSource {
+    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+        CCUILayoutOptions *layoutOptions = [self valueForKey:@"_layoutOptions"];
+        [layoutOptions setValue:@5 forKey:@"_itemSpacing"];
+    }
+
+    return %orig;
+}
+-(void)setEdgeInsets:(UIEdgeInsets)arg1 {
+    if(additionalViewSelection == 3 && mainSwitcherVC.geminiModuleViewController.view == self) {
+        %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
+    }
+    else {
+        %orig;
+    }
+}
+%end
+
 %hook CCUIModuleCollectionViewController
 //adds a blur view to the switcher when presenting an expanded module vc
 -(void)presentViewController:(UIViewController *)viewController animated:(BOOL)animated completion:(id)completion {
     if(self == mainSwitcherVC.geminiModuleViewController) {
-        if(!mainSwitcherVC.geminiBlurView) {
-            UIVisualEffect *blurEffect;
-            blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-
-            mainSwitcherVC.geminiBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-
-            mainSwitcherVC.geminiBlurView.frame = CGRectMake(-1000,-200,2000,2000); //why why why why why
-        }
-
-        [mainSwitcherVC.view addSubview:mainSwitcherVC.geminiBlurView];
+        [mainSwitcherVC showGeminiBlurView:YES makeTopMostView:YES];
     }
     %orig;
 }
@@ -73,7 +113,13 @@ BOOL dismissingMusicModule;
         %orig;
         return;
     }
-    [mainSwitcherVC.geminiBlurView removeFromSuperview];
+    if(!mainSwitcherVC.geminiHasExpandedDynamicView) {
+        [mainSwitcherVC showGeminiBlurView:NO makeTopMostView:YES];
+    }
+    else {
+        [mainSwitcherVC showGeminiBlurView:YES makeTopMostView:NO];
+        mainSwitcherVC.geminiBlurView.alpha = 0.2;
+    }
     %orig(NO, arg2);
 }
 -(void)dismissPresentedContentAnimated:(BOOL)arg1 completion:(id)arg2 {
@@ -86,7 +132,13 @@ BOOL dismissingMusicModule;
         dismissingMusicModule = YES;
     }
     
-    [mainSwitcherVC.geminiBlurView removeFromSuperview];
+    if(!mainSwitcherVC.geminiHasExpandedDynamicView) {
+        [mainSwitcherVC showGeminiBlurView:NO makeTopMostView:YES];
+    }
+    else {
+        [mainSwitcherVC showGeminiBlurView:YES makeTopMostView:NO];
+        mainSwitcherVC.geminiBlurView.alpha = 0.2;
+    }
     %orig(NO, arg2);
 }
 
@@ -116,6 +168,10 @@ BOOL dismissingMusicModule;
 %property (strong, nonatomic) NSMutableDictionary *notificationRequests;
 %property (strong, nonatomic) NSString *currentIdentifier;
 %property (strong, nonatomic) UIVisualEffectView *geminiBlurView;
+%property (nonatomic, assign) BOOL geminiHasExpandedDynamicView;
+%property (strong, nonatomic) NSLayoutConstraint *geminiExpandedCenterYAnchor;
+%property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
+%property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
 
 -(void)viewDidLoad {
     %orig;
@@ -154,7 +210,6 @@ BOOL dismissingMusicModule;
 
 %new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
     if(TARGET_OS_SIMULATOR) {
-        RLog(@"called");
         if(self.geminiAdditionalView.subviews.count > 0) {
             [self.geminiAdditionalView.subviews[0] removeFromSuperview];
         }
@@ -166,7 +221,7 @@ BOOL dismissingMusicModule;
     NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
     NSTimeInterval timeDiff = currentTime - lastOffsetCaptured;
     if(timeDiff <= 0.1) {
-        return;
+        //return;
     }
 
     AXNManager *axonManager = [%c(AXNManager) sharedInstance];
@@ -256,7 +311,7 @@ BOOL dismissingMusicModule;
                     self.geminiStructuredListViewController.deviceAuthenticated = YES;
                     self.geminiAdditionalView.clipsToBounds = YES;
 
-                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier];
+                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this it makes notifs insert when first pinching switcher
                     break;
                 }
                 case 1: {
@@ -290,10 +345,9 @@ BOOL dismissingMusicModule;
                     
                     [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     
-                    [self.geminiModuleViewController.view.heightAnchor constraintEqualToConstant:1024].active = YES;
+                    [self.geminiModuleViewController.view.heightAnchor constraintEqualToConstant:self.geminiModuleViewController.view.intrinsicContentSize.height].active = YES;
                     [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor].active = YES;
                     
-                    scrollView.contentSize = CGSizeMake(scrollView.frame.size.width, 1024); //need an actual way to get the height of the moduleViewController, or what is is supposed to be, so i can set the contentSize height and moduleViewController frame height accordingly instead of just using 1024 as an arbitrary number that just happens to be large enough for my cc setup.
                     self.geminiAdditionalView = scrollView;
                     break;
                 }
@@ -303,60 +357,102 @@ BOOL dismissingMusicModule;
                 }
                 case 3: {
                     //dynamic
-                    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
-                    CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
                     
-                    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
-                    
-                    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
-                    
+                    //setup the views contained in the dynamic view
+                    //notif setup
                     self.geminiStructuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
 
                     [self addChildViewController:self.geminiStructuredListViewController];
                     self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
                     self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
+                    self.geminiStructuredListViewController.delegate = notifVC.delegate;
+                    self.geminiStructuredListViewController.deviceAuthenticated = YES;
+                    self.geminiStructuredListViewController.view.userInteractionEnabled = NO;
                     
-                    UIScrollView *dynamicScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
-                    dynamicScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+                    //cc setup
+                    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
+                    CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
                     
-                    UIStackView *dynamicStackView = [[UIStackView alloc] initWithArrangedSubviews:@[ self.geminiModuleViewController.view,self.geminiStructuredListViewController.view]];
-                    dynamicStackView.translatesAutoresizingMaskIntoConstraints = NO;
-                    
-                    [dynamicScrollView addSubview:dynamicStackView];
-                    dynamicStackView.axis = UILayoutConstraintAxisHorizontal;
-                    dynamicScrollView.pagingEnabled = YES;
-                    
-                    [self.view addSubview:dynamicScrollView];
+                    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
+                    self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+                    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
+                                    
+                    //setup the background view
+                    UIVisualEffect *blurEffect;
+                    blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+
+                    UIVisualEffectView *dynamicContainerView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+                    dynamicContainerView.layer.cornerRadius = 20;
+                    dynamicContainerView.clipsToBounds = YES;
+                    dynamicContainerView.translatesAutoresizingMaskIntoConstraints = NO;
+                    [self.view addSubview:dynamicContainerView];
+                    [dynamicContainerView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor constant:-36].active = YES;
                     
                     CGFloat switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
                     CGFloat height = (screenHeight - switcherHeight) + 100;
-                    
-                    [dynamicScrollView.widthAnchor constraintEqualToConstant:400].active = YES;
-                    [dynamicScrollView.heightAnchor constraintEqualToConstant:height].active = YES;
-                    
+                    self.geminiDynamicHeightAnchor = [dynamicContainerView.heightAnchor constraintEqualToConstant:height];
+                    self.geminiDynamicHeightAnchor.active = YES;
+                    [dynamicContainerView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     if([UIDevice.currentDevice isNotched]) {
-                        [dynamicScrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-75].active = YES;
+                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-90].active = YES;
                     }
                     else {
-                        [dynamicScrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-65].active = YES;
                     }
+                    self.geminiAdditionalView = dynamicContainerView;
                     
-                    [dynamicScrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
+                    UIScrollView *dynamicScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
+                    dynamicScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+                                        
+                    UIStackView *dynamicStackView = [[UIStackView alloc] initWithArrangedSubviews:@[self.geminiModuleViewController.view, self.geminiStructuredListViewController.view]];
+                    dynamicStackView.translatesAutoresizingMaskIntoConstraints = NO;
+
                     
-                    [dynamicStackView.heightAnchor constraintEqualToConstant:height].active = YES;
+                    [dynamicScrollView addSubview:dynamicStackView];
+                    dynamicStackView.axis = UILayoutConstraintAxisHorizontal;
+                    dynamicScrollView.pagingEnabled = YES;
+                    [dynamicContainerView.contentView addSubview:dynamicScrollView];
+                    
+                    //gesture recognizer setup
+                    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+                    doubleTap.numberOfTapsRequired = 2;
+                    doubleTap.cancelsTouchesInView = NO;
+                    [dynamicStackView addGestureRecognizer:doubleTap];
+                    
+                    
+                    //constraints
+                    [dynamicScrollView.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor].active = YES;
+                    [dynamicScrollView.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
+                    
+                    [dynamicScrollView.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor].active = YES;
+                    
+                    [dynamicScrollView.centerXAnchor constraintEqualToAnchor:dynamicContainerView.centerXAnchor].active = YES;
+                    
+                    [dynamicStackView.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
                     [dynamicStackView.topAnchor constraintEqualToAnchor:dynamicScrollView.topAnchor].active = YES;
+                    [dynamicStackView.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:0].active = YES;
                     
-                    [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:height].active = YES;
-                    [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.view.frame.size.width].active = YES;
+                    [self.geminiModuleViewController.view.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor constant:0].active = YES;
+                    
+                    [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
+                    [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor].active = YES;
+                    [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:10].active = YES;
+                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:-2.5].active = YES;
+
                     
                     [self.geminiStructuredListViewController.masterListView.topAnchor constraintEqualToAnchor:self.geminiStructuredListViewController.view.topAnchor].active = YES;
-                    [self.geminiStructuredListViewController.masterListView.heightAnchor constraintEqualToConstant:height].active = YES;
-
-                    [self.geminiStructuredListViewController.masterListView.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.masterListView.frame.size.width].active = YES;
+                    [self.geminiStructuredListViewController.masterListView.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
+                    [self.geminiStructuredListViewController.masterListView.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor].active = YES;
+                    self.geminiAdditionalView.clipsToBounds = YES;
                     
-                    dynamicScrollView.contentSize = dynamicStackView.frame.size;
-                    self.geminiAdditionalView = dynamicScrollView;
+                    CGFloat switcherWidth = self.view.frame.size.width;
+                    CGFloat width = switcherWidth - 36;
+                    dynamicScrollView.contentSize = CGSizeMake(width * 2, 0);
+                    
+                    dynamicScrollView.showsHorizontalScrollIndicator = NO;
+                    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:NO];
+                    [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this btw it makes things work
                     break;
                 }
                 default: {
@@ -365,7 +461,7 @@ BOOL dismissingMusicModule;
             }
             
             //this is for testing how the additional view will look on different sized devices
-            /*if(TARGET_OS_SIMULATOR) {
+            if(TARGET_OS_SIMULATOR) {
                 UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
                 view.backgroundColor = UIColor.redColor;
                 [self.view addSubview:view];
@@ -385,16 +481,18 @@ BOOL dismissingMusicModule;
                 [view.widthAnchor constraintEqualToConstant:self.view.frame.size.width].active = YES;
                 [view.heightAnchor constraintEqualToConstant:height].active = YES;
                 self.geminiAdditionalView = view;
-            }*/
+            }
             
         }
 
         for(UIViewController *childViewController in self.geminiModuleViewController.childViewControllers) {
-            UIViewController *childChildViewController = childViewController.childViewControllers[0];
-            [childChildViewController viewWillAppear:NO];
-            
-            if([childChildViewController respondsToSelector:@selector(setState:)]) { //fixes music player being a weird size when dismissed
-                [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
+            if(childViewController.childViewControllers.count > 0) {
+                UIViewController *childChildViewController = childViewController.childViewControllers[0];
+                [childChildViewController viewWillAppear:NO];
+                
+                if([childChildViewController respondsToSelector:@selector(setState:)]) { //fixes music player being a weird size when dismissed
+                    [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
+                }
             }
         }
 
@@ -423,7 +521,86 @@ BOOL dismissingMusicModule;
         self.currentIdentifier = nil;
     }
 }
+%new -(void)handleTap:(UITapGestureRecognizer *)tap {
+    self.geminiHasExpandedDynamicView = YES;
+    [self showGeminiBlurView:YES makeTopMostView:NO];
+    self.geminiBlurView.alpha = 0.2;
+    
+    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:YES];
+    self.geminiStructuredListViewController.view.userInteractionEnabled = YES;
 
+    
+    //gesture recognizer setup
+    UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissExpandedDynamicView)];
+    [self.geminiBlurView addGestureRecognizer:singleTap];
+    
+    [self.geminiAdditionalView layoutIfNeeded];
+    [UIView animateWithDuration:0.1 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^(void) {
+        self.geminiExpandedCenterYAnchor = [self.geminiAdditionalView.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor constant:100];
+        self.geminiExpandedCenterYAnchor.active = YES;
+        self.geminiDynamicHeightAnchor.active = NO;
+        
+        CGFloat switcherHeight = self.view.frame.size.height;
+        CGFloat height = switcherHeight;
+        self.geminiExpandedHeightAnchor = [self.geminiAdditionalView.heightAnchor constraintEqualToConstant:height];
+        self.geminiExpandedHeightAnchor.active = YES;
+        [self.geminiAdditionalView setNeedsLayout];
+        [self.geminiAdditionalView layoutIfNeeded];
+    } completion:nil];
+}
+
+%new -(void)dismissExpandedDynamicView {
+    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:NO];
+    self.geminiStructuredListViewController.view.userInteractionEnabled = NO;
+
+    [self.geminiAdditionalView layoutIfNeeded];
+    [self showGeminiBlurView:NO makeTopMostView:NO];
+    [UIView animateWithDuration:0.1 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^(void) {
+        self.geminiExpandedHeightAnchor.active = NO;
+        self.geminiDynamicHeightAnchor.active = YES;
+
+        [self.geminiAdditionalView setNeedsLayout];
+        [self.geminiAdditionalView layoutIfNeeded];
+    } completion:nil];
+    [self.geminiAdditionalView layoutIfNeeded];
+    [UIView animateWithDuration:0.1 delay:0.2 options:UIViewAnimationOptionCurveEaseInOut animations:^(void) {
+        self.geminiExpandedCenterYAnchor.active = NO;
+        [self.geminiAdditionalView setNeedsLayout];
+        [self.geminiAdditionalView layoutIfNeeded];
+    } completion:^(BOOL finished) {
+        self.geminiHasExpandedDynamicView = NO;
+    }];
+}
+
+
+%new -(void)showGeminiBlurView:(BOOL)shouldShow makeTopMostView:(BOOL)shouldMakeTopMost {
+    if(!self.geminiBlurView) {
+        UIVisualEffect *blurEffect;
+        blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+        mainSwitcherVC.geminiBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        mainSwitcherVC.geminiBlurView.frame = CGRectMake(-1000,-200,2000,2000); //why why why why why
+    }
+    
+    if(shouldShow) {
+        self.geminiBlurView.alpha = 0;
+        if(!shouldMakeTopMost) {
+            [self.view insertSubview:self.geminiBlurView atIndex:1];
+        }
+        else {
+            [self.view addSubview:self.geminiBlurView];
+        }
+        [UIView animateWithDuration:0.2 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            self.geminiBlurView.alpha = 1;
+        } completion:nil];
+    }
+    else {
+        [UIView animateWithDuration:0.2 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            mainSwitcherVC.geminiBlurView.alpha = 0;
+        } completion:^(BOOL finished){
+            [self.geminiBlurView removeFromSuperview];
+        }];
+    }
+}
 %new
 -(void)GMNShowTestNotifications {
     //add notifications for currently opened apps
@@ -464,9 +641,13 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             mainSwitcherVC.isSmall = NO;
             mainSwitcherVC.currentIdentifier = nil;
+            [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
         }
         mainSwitcherVC.geminiAdditionalView.alpha = 0;
         mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
+    }
+    if(arg1 == 2 && automaticallyPinchSwitcher) {
+        [mainSwitcherVC handlePinch:nil];
     }
 }
 %end
@@ -515,6 +696,13 @@ BOOL dismissingMusicModule;
             return orig;
         }
         for(UIView *subview in self.subviews.reverseObjectEnumerator) {
+            if(mainSwitcherVC.geminiHasExpandedDynamicView && subview == mainSwitcherVC.geminiBlurView) {
+                CGPoint subPoint = [subview convertPoint:point fromView:self];
+                UIView *result = [subview hitTest:subPoint withEvent:event];
+                if(result) {
+                    return result;
+                }
+            }
             if(subview == mainSwitcherVC.geminiAdditionalView){
                 CGPoint subPoint = [subview convertPoint:point fromView:self];
                 UIView *result = [subview hitTest:subPoint withEvent:event];
@@ -678,15 +866,18 @@ static void loadPrefs(){
     isEnabled = prefs[@"isEnabled"] ? [prefs[@"isEnabled"] boolValue] : YES;
     reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO;
     additionalViewSelection = prefs[@"additionalViewSelection"] ? [prefs[@"additionalViewSelection"] intValue] : 0;
+    
+    automaticallyPinchSwitcher = prefs[@"automaticallyPinchSwitcher"] ? [prefs[@"automaticallyPinchSwitcher"] boolValue] : NO;
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     loadPrefs();
     
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
-        for(int i = 0; i < mainSwitcherVC.childViewControllers.count; i++) {
-            if(i > 0){
-                [mainSwitcherVC.childViewControllers[i] removeFromParentViewController];
+        for(UIViewController *viewController in mainSwitcherVC.childViewControllers.copy) {
+            if(viewController.class != %c(SBDeckSwitcherViewController)) {
+                RLog(@"VC %@", viewController);
+                [viewController removeFromParentViewController];
             }
         }
         for(int i = 0; i < mainSwitcherVC.view.subviews.count; i++) {

@@ -31,6 +31,14 @@
 			<true/>
 			<key>label</key>
 			<string>Automatically Pinch Switcher</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>key</key>
+            <string>automaticallyPinchSwitcher</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>

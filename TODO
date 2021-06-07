@@ -12,15 +12,12 @@ Bugs:
 - fix suggested app view's size getting messed up & getting covered by the additional view (4)
 
 Features:
-- show ls music player in additional view area (6)
-- horizontal scroll view to switch between additional views (7)
 - option to constantly have scroll view in miniature size (7)
 - custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (9)
 - better preferences with more organization, an obwelcomecontroller, etc. (5)
-- show floaty dock in switcher view (1)
 - show/hide no older notification text (2)
 - automatically scroll to the first app that has notifications
-- change additional view if there are no notifications or no music playing (4)
+- change additional view if there are no notifications or no music playing (4) (maybe just a feature of the dynamic view instead)
 - make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
 - show notification badge in header view of app page view (4)
 

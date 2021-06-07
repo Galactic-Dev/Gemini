@@ -21,6 +21,15 @@
 @end
 
 //Control Center Stuff
+@interface CCUIModuleCollectionView : UIView
+@property (nonatomic, assign) UIEdgeInsets edgeInsets;
+@end
+
+@interface CCUILayoutOptions : NSObject
+-(void)setItemEdgeSize:(CGFloat)arg1;
+-(void)setItemSpacing:(CGFloat)arg1;
+@end
+
 @interface MediaControlsVolumeViewController : UIViewController
 @end
 
@@ -90,6 +99,12 @@
 @property (nonatomic, assign) BOOL isSmall;
 -(BOOL)bundleIdentifierIsInCenterOfSwitcher:(NSString *)identifier;
 @property (strong, nonatomic) UIVisualEffectView *geminiBlurView;
+-(void)showGeminiBlurView:(BOOL)shouldShow makeTopMostView:(BOOL)shouldMakeTopMost;
+@property (nonatomic, assign) BOOL geminiHasExpandedDynamicView;
+-(void)dismissExpandedDynamicView;
+@property (strong, nonatomic) NSLayoutConstraint *geminiExpandedCenterYAnchor;
+@property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
+@property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
 @end
 
 @interface AXNView : UIView
