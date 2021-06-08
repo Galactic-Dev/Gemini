@@ -11,13 +11,22 @@
 @interface SBAppSwitcherScrollView : UIScrollView
 @end
 
+@interface SBAppLayout : NSObject
+@property (nonatomic, copy) NSDictionary *rolesToLayoutItemsMap;
+
+//custom properties and methods
+@property (nonatomic, assign) BOOL geminiIsShowingNotifs;
+@end
+
 @interface SBFluidSwitcherViewController : UIViewController
 @property (nonatomic,retain) UIView *contentView;
 @property (strong, nonatomic) NSMutableDictionary *visibleItemContainers;
 @property (strong, nonatomic) SBAppSwitcherScrollView *scrollView;
+-(void)_scrollToAppLayout:(SBAppLayout *)appLayout animated:(BOOL)animated completion:(id)completion;
 @end
 
 @interface SBDeckSwitcherViewController : SBFluidSwitcherViewController
+@property (nonatomic,retain) UIViewController *appSuggestionController;
 @end
 
 //Control Center Stuff
@@ -73,6 +82,10 @@
 @property (strong, nonatomic) NSMutableArray <NCNotificationStructuredSectionList *> *notificationSections;
 @end
 
+@interface NCNotificationListSectionRevealHintView : UIView
+-(void)_layoutRevealHintTitle;
+@end
+
 @interface NCNotificationStructuredListViewController : UIViewController
 @property (nonatomic, strong, readwrite) NCNotificationListView *masterListView;
 @property (strong, nonatomic) NCNotificationMasterList *masterList;
@@ -106,6 +119,7 @@
 @property (strong, nonatomic) NSLayoutConstraint *geminiExpandedCenterYAnchor;
 @property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
 @property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
+@property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterHeightAnchor;
 @end
 
 @interface AXNView : UIView
@@ -130,13 +144,6 @@
 
 @interface SBDisplayItem
 @property (nonatomic,copy,readonly) NSString *bundleIdentifier;
-@end
-
-@interface SBAppLayout : NSObject
-@property (nonatomic, copy) NSDictionary *rolesToLayoutItemsMap;
-
-//custom properties and methods
-@property (nonatomic, assign) BOOL geminiIsShowingNotifs;
 @end
 
 @interface SBAppSwitcherReusableSnapshotView

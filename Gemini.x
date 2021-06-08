@@ -13,9 +13,14 @@ BOOL isScrollingFast;
 
 //PREFERENCES:
 BOOL isEnabled;
-BOOL reduceAnimations;
 NSInteger additionalViewSelection;
 BOOL automaticallyPinchSwitcher;
+
+//notif prefs
+BOOL showNoOlderNotifications;
+BOOL autoScrollToNotifs;
+BOOL reduceAnimations;
+BOOL showAllAppNotifications;
 
 %group Main
 
@@ -57,14 +62,15 @@ BOOL dismissingMusicModule;
         switch(additionalViewSelection) {
             case 1: {
                 if(mainSwitcherVC.geminiAdditionalView.class == [UIScrollView class]) {
-                    [self.heightAnchor constraintEqualToConstant:size.height].active = YES;
+                    mainSwitcherVC.geminiControlCenterHeightAnchor.active = NO;
+                    mainSwitcherVC.geminiControlCenterHeightAnchor = [self.heightAnchor constraintEqualToConstant:size.height];
+                    mainSwitcherVC.geminiControlCenterHeightAnchor.active = YES;
                     [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentSize:size];
                 }
                 break;
             }
             case 2: {
                 [self.heightAnchor constraintEqualToConstant:size.height].active = YES;
-                //[(UIScrollView *)self.superview.superview setContentSize:size];
                 break;
             }
             default: {
@@ -160,6 +166,22 @@ BOOL dismissingMusicModule;
 }
 %end
 
+%hook NCNotificationListSectionRevealHintView
+//overrides axon hiding the hint view
+
+
+-(void)layoutSubviews {
+    %orig;
+    [self _layoutRevealHintTitle];
+}
+-(void)_layoutRevealHintTitle {
+    %orig;
+    if(mainSwitcherVC.isSmall && showNoOlderNotifications) {
+        [(UILabel *)[self valueForKey:@"_revealHintTitle"] setHidden:NO];
+    }
+}
+%end
+
 %hook SBMainSwitcherViewController
 %property (nonatomic, assign) BOOL isSmall;
 %property (strong, nonatomic) CCUIModuleCollectionViewController *geminiModuleViewController;
@@ -172,6 +194,7 @@ BOOL dismissingMusicModule;
 %property (strong, nonatomic) NSLayoutConstraint *geminiExpandedCenterYAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
+%property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterHeightAnchor;
 
 -(void)viewDidLoad {
     %orig;
@@ -209,14 +232,14 @@ BOOL dismissingMusicModule;
 }
 
 %new -(void)insertNotificationsForBundleIdentifier:(NSString *)identifier {
-    if(TARGET_OS_SIMULATOR) {
+    /*if(TARGET_OS_SIMULATOR) {
         if(self.geminiAdditionalView.subviews.count > 0) {
             [self.geminiAdditionalView.subviews[0] removeFromSuperview];
         }
         UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0,0,300,100)];
         label.text = identifier;
         [self.geminiAdditionalView addSubview:label];
-    }
+    }*/
     
     NSTimeInterval currentTime = [NSDate timeIntervalSinceReferenceDate];
     NSTimeInterval timeDiff = currentTime - lastOffsetCaptured;
@@ -249,7 +272,7 @@ BOOL dismissingMusicModule;
     }
 
     for(int i = 0; i < requests.count; i++) {
-        [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:requests[i]];
+        if(!showAllAppNotifications) [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:requests[i]];
         NSString *sectionIdentifier = requests[i].sectionIdentifier;
         if([self.notificationRequests.allKeys containsObject:sectionIdentifier]) {
             NSMutableArray *requestsForID = self.notificationRequests[sectionIdentifier];
@@ -259,12 +282,18 @@ BOOL dismissingMusicModule;
             [self.notificationRequests setValue:@[requests[i]].mutableCopy forKey:sectionIdentifier];
         }
         if(identifier) {
-            if([sectionIdentifier isEqualToString:identifier]) {
+            if([sectionIdentifier isEqualToString:identifier] || showAllAppNotifications) {
                 [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
             }
         }
     }
-    self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
+    if(!showNoOlderNotifications) {
+        self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = YES;
+    }
+    else {
+        [self.geminiStructuredListViewController revealNotificationHistory:YES animated:YES];
+        self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = NO;
+    }
     lastOffsetCaptured = currentTime;
 }
 
@@ -272,6 +301,7 @@ BOOL dismissingMusicModule;
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
     if(pinchGesture.scale <= 0.75 && !self.isSmall && [self sbActiveInterfaceOrientation] == 1 && environmentMode == 2) {
         mainSwitcherVC.isSmall = YES;
+        self.contentViewController.appSuggestionController.view.hidden = YES;
 
         self.notificationRequests = [NSMutableDictionary dictionary];
         if(self.childViewControllers.count < 2) {
@@ -288,10 +318,10 @@ BOOL dismissingMusicModule;
                     
                     CGFloat switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-                    CGFloat height = (screenHeight - switcherHeight) + 100;
+                    CGFloat height = (screenHeight - switcherHeight) + 130;
                     
                     if([UIDevice.currentDevice isNotched]) {
-                        [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-75].active = YES;
+                        [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-85].active = YES;
                     }
                     else {
                         [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
@@ -331,13 +361,13 @@ BOOL dismissingMusicModule;
                     
                     CGFloat switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-                    CGFloat height = (screenHeight - switcherHeight) + 100;
+                    CGFloat height = (screenHeight - switcherHeight) + 140;
                     
                     [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
                     [scrollView.heightAnchor constraintEqualToConstant:height].active = YES;
                     
                     if([UIDevice.currentDevice isNotched]) {
-                        [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-75].active = YES;
+                        [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
                     }
                     else {
                         [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
@@ -345,7 +375,6 @@ BOOL dismissingMusicModule;
                     
                     [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     
-                    [self.geminiModuleViewController.view.heightAnchor constraintEqualToConstant:self.geminiModuleViewController.view.intrinsicContentSize.height].active = YES;
                     [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor].active = YES;
                     
                     self.geminiAdditionalView = scrollView;
@@ -394,7 +423,7 @@ BOOL dismissingMusicModule;
                         [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-90].active = YES;
                     }
                     else {
-                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-65].active = YES;
+                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
                     }
                     self.geminiAdditionalView = dynamicContainerView;
                     
@@ -457,6 +486,7 @@ BOOL dismissingMusicModule;
             }
             
             //this is for testing how the additional view will look on different sized devices
+            
             if(TARGET_OS_SIMULATOR) {
                 UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
                 view.backgroundColor = UIColor.redColor;
@@ -466,9 +496,9 @@ BOOL dismissingMusicModule;
                 
                 CGFloat switcherHeight = (self.view.frame.size.height ) * 0.75;
                 CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-                CGFloat height = (screenHeight - switcherHeight) + 100;
+                CGFloat height = (screenHeight - switcherHeight) + 130;
                 if([UIDevice.currentDevice isNotched]) {
-                    [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-75].active = YES;
+                    [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-85].active = YES;
                 }
                 else {
                     [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
@@ -495,17 +525,37 @@ BOOL dismissingMusicModule;
         self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
         self.geminiAdditionalView.alpha = 1;
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 100, self.view.frame.size.width, self.view.frame.size.height);
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 115, self.view.frame.size.width, self.view.frame.size.height);
             self.view.transform = CGAffineTransformMakeScale(.75, .75);
 
             self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
             
             return;
         } completion:nil];
+        
+        //needs work
+        if(additionalViewSelection == 0 || additionalViewSelection == 2) {
+            RLog(@"called");
+            if(autoScrollToNotifs) {
+                NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
+                SBAppLayout *firstAppLayoutWithNotifications;
+                for(SBAppLayout *appLayout in mainAppLayouts.reverseObjectEnumerator) {
+                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                    NSString *identifier = displayItem.bundleIdentifier;
+                    for(NSString *notificationIdent in self.notificationRequests.allKeys) {
+                        if([notificationIdent isEqualToString:identifier]) {
+                            firstAppLayoutWithNotifications = appLayout;
+                        }
+                    }
+                }
+                RLog(@"%@", firstAppLayoutWithNotifications);
+                [self.contentViewController _scrollToAppLayout:firstAppLayoutWithNotifications animated:YES completion:nil];
+            }
+        }
     }
     else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 100, self.view.frame.size.width, self.view.frame.size.height);
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 115, self.view.frame.size.width, self.view.frame.size.height);
             self.view.transform = CGAffineTransformMakeScale(1, 1);
 
             self.geminiAdditionalView.alpha = 0;
@@ -514,6 +564,7 @@ BOOL dismissingMusicModule;
             return;
         } completion:nil];
         self.isSmall = NO;
+        self.contentViewController.appSuggestionController.view.hidden = NO;
         self.currentIdentifier = nil;
     }
 }
@@ -633,9 +684,10 @@ BOOL dismissingMusicModule;
     %orig;
     if (arg1 != 2 && [mainSwitcherVC sbActiveInterfaceOrientation] == 1){ //checks if switcher isn't showing and content orientation is portrait;
         if (mainSwitcherVC.isSmall){
-            mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 100, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
+            mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 115, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
             mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             mainSwitcherVC.isSmall = NO;
+            mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
             mainSwitcherVC.currentIdentifier = nil;
             [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
             if(additionalViewSelection == 2) {
@@ -873,16 +925,22 @@ BOOL dismissingMusicModule;
 static void loadPrefs(){
     NSMutableDictionary *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/User/Library/Preferences/com.galacticdev.geminiprefs.plist"];
     isEnabled = prefs[@"isEnabled"] ? [prefs[@"isEnabled"] boolValue] : YES;
-    reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO;
     additionalViewSelection = prefs[@"additionalViewSelection"] ? [prefs[@"additionalViewSelection"] intValue] : 0;
     
     automaticallyPinchSwitcher = prefs[@"automaticallyPinchSwitcher"] ? [prefs[@"automaticallyPinchSwitcher"] boolValue] : NO;
+    
+    showNoOlderNotifications  = prefs[@"showNoOlderNotifications"] ? [prefs[@"showNoOlderNotifications"] boolValue] : NO; //✅
+    autoScrollToNotifs  = prefs[@"autoScrollToNotifs"] ? [prefs[@"autoScrollToNotifs"] boolValue] : NO;
+    reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO; //✅
+    showAllAppNotifications  = prefs[@"showAllAppNotifications"] ? [prefs[@"showAllAppNotifications"] boolValue] : NO; //✅
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     loadPrefs();
     
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
+        mainSwitcherVC.geminiModuleViewController = nil;
+        mainSwitcherVC.geminiStructuredListViewController = nil;
         for(UIViewController *viewController in mainSwitcherVC.childViewControllers.copy) {
             if(viewController.class != %c(SBDeckSwitcherViewController)) {
                 [viewController removeFromParentViewController];

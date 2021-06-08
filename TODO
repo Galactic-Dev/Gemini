@@ -8,12 +8,10 @@ priorities:
 Bugs:
 - screen recording module not syncing across different cc's (4)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
-- fix suggested app view's size getting messed up & getting covered by the additional view (4)
 
 Features:
 - custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (10)
-- show/hide no older notification text (3)
-- automatically scroll to the first app that has notifications
+- automatically scroll to the first app that has notifications //started to work on it but it needs work
 - change additional view if there are no notifications or no music playing (6) (maybe just a feature of the dynamic view instead)
 - show notification badge in header view of app page view (4)
 
@@ -22,17 +20,17 @@ Features:
 - make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
 
 
-Devices that i've checked sizing with:
-iPhone XR/iPhone 11 - irl & sim✅
-iPhone 11 Pro max/iPhone XS Max - sim ✅
-iPhone SE 1st gen - sim ✅ (the only issue is the switcher gets cut off a little at the top)
-iPhone 8/iPhone 7 - sim ✅
-iPhone 8+/iPhone 7+ - sim ✅
-iPhone X/iPhone XS/iPhone 11 Pro  - sim ✅
-iPhone 12 Pro Max - sim ✅
-iPhone 12/12 PRO - sim ✅
-iPhone 12 Mini - sim ✅
-iPhone SE 2020 - sim  ✅
+Devices that i've checked sizing with: (two checks mean i've checked with the latest sizing and with the dynamic view)
+iPhone XR/iPhone 11 - irl & sim✅✅
+iPhone 11 Pro max/iPhone XS Max - sim ✅✅
+iPhone SE 1st gen - sim ❌ (switcher is cut off on top, and additionalview is too far up)
+iPhone 8/iPhone 7 - sim ✅✅
+iPhone 8+/iPhone 7+ - sim ✅✅
+iPhone X/iPhone XS/iPhone 11 Pro  - sim ✅✅
+iPhone 12 Pro Max - sim ✅✅
+iPhone 12/12 PRO - sim ✅✅
+iPhone 12 Mini - sim ✅✅
+iPhone SE 2020 - sim  ✅✅
 
 iOS Versions Checked With:
 iOS 13 - sim:

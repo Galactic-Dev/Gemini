@@ -25,6 +25,8 @@
 			<string>Show "No Older Notifications"</string>
             <key>key</key>
             <string>showNoOlderNotifications</string>
+            <key>default</key>
+            <false/>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -39,7 +41,25 @@
 			<string>Auto Scroll To Notifications</string>
             <key>key</key>
             <string>autoScrollToNotifs</string>
+            <key>default</key>
+            <false/>
 		</dict>
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Reduce Animations</string>
+            <key>key</key>
+            <string>reduceAnimations</string>
+            <key>default</key>
+            <false/>
+        </dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -61,6 +81,8 @@
 			<string>Show All App Notifications</string>
             <key>key</key>
             <string>showAllAppNotifications</string>
+            <key>default</key>
+            <false/>
 		</dict>
 	</array>
 	<key>title</key>
