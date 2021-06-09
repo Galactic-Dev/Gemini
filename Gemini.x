@@ -44,6 +44,12 @@ BOOL autoScrollDynamicView;
 //fixes music cc module not dismissing when tapped
 BOOL dismissingMusicModule;
 %hook MRUControlCenterViewController
+-(BOOL)shouldExpandModuleOnTouch:(id)arg1 {
+    if([self _rootAncestorViewController] == mainSwitcherVC) {
+        return NO;
+    }
+    return %orig;
+}
 -(void)dismiss {
     %orig;
     if(self.presentingViewController == mainSwitcherVC) {
@@ -78,7 +84,7 @@ BOOL dismissingMusicModule;
     CGSize size = %orig;
     if(self == mainSwitcherVC.geminiModuleViewController.view) {
         switch(additionalViewSelection) {
-            case 1: {
+            case 0: {
                 if(mainSwitcherVC.geminiAdditionalView.class == [UIScrollView class]) {
                     mainSwitcherVC.geminiControlCenterHeightAnchor.active = NO;
                     mainSwitcherVC.geminiControlCenterHeightAnchor = [self.heightAnchor constraintEqualToConstant:size.height];
@@ -341,7 +347,7 @@ BOOL dismissingMusicModule;
         self.notificationRequests = [NSMutableDictionary dictionary];
         if(self.childViewControllers.count < 2) {
             switch(additionalViewSelection) {
-                case 0: {
+                case 1: {
                     [self setupGeminiStructuredListViewController];
                     [self.view addSubview:self.geminiStructuredListViewController.view];
                     
@@ -373,7 +379,7 @@ BOOL dismissingMusicModule;
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this it makes notifs insert when first pinching switcher
                     break;
                 }
-                case 1: {
+                case 0: {
                     [self setupGeminiModuleViewController];
                     
                     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.geminiModuleViewController.view.frame];
@@ -546,7 +552,7 @@ BOOL dismissingMusicModule;
         } completion:^(BOOL finished) {
             //needs work
             /*
-            if(additionalViewSelection == 0 || additionalViewSelection == 2) {
+            if(additionalViewSelection == 1 || additionalViewSelection == 2) {
                 if(autoScrollToNotifs) {
                     NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
                     SBAppLayout *firstAppLayoutWithNotifications;
@@ -577,9 +583,9 @@ BOOL dismissingMusicModule;
             return;
         } completion:^(BOOL isFinsihed) {
             switch(additionalViewSelection) {
-                case 0:
-                    break;
                 case 1:
+                    break;
+                case 0:
                     [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
                     [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentOffset:CGPointMake(0,0)];
                     break;
@@ -746,9 +752,9 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
             mainSwitcherVC.currentIdentifier = nil;
             switch(additionalViewSelection) {
-                case 0:
-                    break;
                 case 1:
+                    break;
+                case 0:
                     [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
                     [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentOffset:CGPointMake(0,0)];
                     break;

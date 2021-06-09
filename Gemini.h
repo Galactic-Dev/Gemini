@@ -4,6 +4,10 @@
 #include <dlfcn.h>
 #import "UIDevice+notchedDevice.h"
 
+@interface UIViewController (Private)
+-(id)_rootAncestorViewController;
+@end
+
 @interface NSDistributedNotificationCenter : NSNotificationCenter
 -(void)addObserver:(id)arg1 selector:(SEL)arg2 name:(id)arg3 object:(id)arg4;
 @end

@@ -72,8 +72,8 @@
 			<string>segmentedCell</string>
 			<key>validTitles</key>
 			<array>
+                <string>Control Center</string>
 				<string>Notifications</string>
-				<string>Control Center</string>
 				<string>Dynamic</string>
 			</array>
 			<key>validValues</key>

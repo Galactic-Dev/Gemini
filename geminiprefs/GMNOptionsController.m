@@ -8,11 +8,11 @@
         NSInteger additionalViewSelection = [settings[@"additionalViewSelection"] intValue];
         NSString *plistName;
         switch (additionalViewSelection) {
-            case 0: {
+            case 1: {
                 plistName = @"Notifications";
                 break;
             }
-            case 1: {
+            case 0: {
                 plistName = @"ControlCenter";
                 break;
             }
