@@ -22,6 +22,13 @@ BOOL autoScrollToNotifs;
 BOOL reduceAnimations;
 BOOL showAllAppNotifications;
 
+//cc prefs
+BOOL hasCustomControlCenterModules;
+NSArray *customControlCenterModules;
+
+//dynamic prefs
+BOOL autoScrollDynamicView;
+
 %group Main
 
 //fixes volume hud not showing when moduleviewcontroller is presented
@@ -52,6 +59,17 @@ BOOL dismissingMusicModule;
         return;
     }
     %orig;
+}
+%end
+
+%hook CCUIModuleInstanceManager
+-(void)setEnabledModuleIdentifiers:(NSSet *)arg1 {
+    if(self == mainSwitcherVC.geminiModuleInstanceManager && hasCustomControlCenterModules && customControlCenterModules.count > 0) {
+        %orig([NSSet setWithArray:customControlCenterModules]);
+    }
+    else {
+        %orig;
+    }
 }
 %end
 
@@ -195,6 +213,7 @@ BOOL dismissingMusicModule;
 %property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterHeightAnchor;
+%property (strong, nonatomic) CCUIModuleInstanceManager *geminiModuleInstanceManager;
 
 -(void)viewDidLoad {
     %orig;
@@ -294,6 +313,22 @@ BOOL dismissingMusicModule;
         [self.geminiStructuredListViewController revealNotificationHistory:YES animated:YES];
         self.geminiStructuredListViewController.masterList.notificationSections[1].revealHintView.hidden = NO;
     }
+    if(autoScrollDynamicView && additionalViewSelection == 2) {
+        if(self.geminiStructuredListViewController.masterList.notificationSections[0].notificationCount > 0) {
+            UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
+            if(visualEffectView.class == [UIVisualEffectView class]) {
+                UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
+                [scrollView setContentOffset:CGPointMake(scrollView.frame.size.width*1, 0.0f) animated:YES];
+            }
+        }
+        else {
+            UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
+            if(visualEffectView.class == [UIVisualEffectView class]) {
+                UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
+                [scrollView setContentOffset:CGPointMake(scrollView.frame.size.width*0, 0.0f) animated:YES];
+            }
+        }
+    }
     lastOffsetCaptured = currentTime;
 }
 
@@ -307,14 +342,8 @@ BOOL dismissingMusicModule;
         if(self.childViewControllers.count < 2) {
             switch(additionalViewSelection) {
                 case 0: {
-                    self.geminiStructuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
-
-                    [self addChildViewController:self.geminiStructuredListViewController];
+                    [self setupGeminiStructuredListViewController];
                     [self.view addSubview:self.geminiStructuredListViewController.view];
-                    
-                    self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-                    self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
-                    
                     
                     CGFloat switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
@@ -345,19 +374,13 @@ BOOL dismissingMusicModule;
                     break;
                 }
                 case 1: {
-                    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
-                    CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
-                    
-                    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
-                    
-                    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
+                    [self setupGeminiModuleViewController];
                     
                     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.geminiModuleViewController.view.frame];
                     [scrollView addSubview:self.geminiModuleViewController.view];
                     [mainSwitcherVC.view addSubview:scrollView];
                     
                     scrollView.translatesAutoresizingMaskIntoConstraints = NO;
-                    self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
                     
                     CGFloat switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
@@ -385,22 +408,11 @@ BOOL dismissingMusicModule;
                     
                     //setup the views contained in the dynamic view
                     //notif setup
-                    self.geminiStructuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
-
-                    [self addChildViewController:self.geminiStructuredListViewController];
-                    self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-                    self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
-                    self.geminiStructuredListViewController.delegate = notifVC.delegate;
-                    self.geminiStructuredListViewController.deviceAuthenticated = YES;
+                    [self setupGeminiStructuredListViewController];
                     self.geminiStructuredListViewController.view.userInteractionEnabled = NO;
                     
                     //cc setup
-                    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
-                    CCUIModuleInstanceManager *moduleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
-                    
-                    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:moduleInstanceManager];
-                    self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-                    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
+                    [self setupGeminiModuleViewController];
                                     
                     //setup the background view
                     UIVisualEffect *blurEffect;
@@ -531,27 +543,28 @@ BOOL dismissingMusicModule;
             self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
             
             return;
-        } completion:nil];
-        
-        //needs work
-        if(additionalViewSelection == 0 || additionalViewSelection == 2) {
-            RLog(@"called");
-            if(autoScrollToNotifs) {
-                NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
-                SBAppLayout *firstAppLayoutWithNotifications;
-                for(SBAppLayout *appLayout in mainAppLayouts.reverseObjectEnumerator) {
-                    SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
-                    NSString *identifier = displayItem.bundleIdentifier;
-                    for(NSString *notificationIdent in self.notificationRequests.allKeys) {
-                        if([notificationIdent isEqualToString:identifier]) {
-                            firstAppLayoutWithNotifications = appLayout;
+        } completion:^(BOOL finished) {
+            //needs work
+            /*
+            if(additionalViewSelection == 0 || additionalViewSelection == 2) {
+                if(autoScrollToNotifs) {
+                    NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
+                    SBAppLayout *firstAppLayoutWithNotifications;
+                    for(SBAppLayout *appLayout in mainAppLayouts.reverseObjectEnumerator) {
+                        SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
+                        NSString *identifier = displayItem.bundleIdentifier;
+                        for(NSString *notificationIdent in self.notificationRequests.allKeys) {
+                            if([notificationIdent isEqualToString:identifier]) {
+                                firstAppLayoutWithNotifications = appLayout;
+                            }
                         }
                     }
+                    [self.contentViewController _scrollToAppLayout:firstAppLayoutWithNotifications animated:NO completion:nil];
                 }
-                RLog(@"%@", firstAppLayoutWithNotifications);
-                [self.contentViewController _scrollToAppLayout:firstAppLayoutWithNotifications animated:YES completion:nil];
-            }
-        }
+            }*/
+        }];
+        
+        
     }
     else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
@@ -562,12 +575,55 @@ BOOL dismissingMusicModule;
             self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
 
             return;
-        } completion:nil];
+        } completion:^(BOOL isFinsihed) {
+            switch(additionalViewSelection) {
+                case 0:
+                    break;
+                case 1:
+                    [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+                    [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentOffset:CGPointMake(0,0)];
+                    break;
+                case 2: {
+                    [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+                    UIVisualEffectView *visualEffectView = (UIVisualEffectView *)mainSwitcherVC.geminiAdditionalView;
+                    [(UIScrollView *)visualEffectView.contentView.subviews[0] setContentOffset:CGPointMake(0,0)];
+                    break;
+                }
+                default:
+                    break;
+            }
+        }];
         self.isSmall = NO;
         self.contentViewController.appSuggestionController.view.hidden = NO;
         self.currentIdentifier = nil;
     }
 }
+%new -(void)setupGeminiModuleViewController {
+    SBControlCenterSystemAgent *systemAgent = [[%c(SBControlCenterSystemAgent) alloc] init];
+    self.geminiModuleInstanceManager = [[%c(CCUIModuleInstanceManager) alloc] _initWithSystemAgent:systemAgent repository:[%c(CCSModuleRepository) repositoryWithDefaults]];
+
+    
+    self.geminiModuleViewController = [[%c(CCUIModuleCollectionViewController) alloc] initWithModuleInstanceManager:self.geminiModuleInstanceManager];
+    if(hasCustomControlCenterModules && customControlCenterModules.count > 0) {
+        CCUIModuleSettingsManager *settingsManager = [self.geminiModuleViewController valueForKey:@"_settingsManager"];
+        CCSModuleSettingsProvider *settingsProvider = [settingsManager valueForKey:@"_settingsProvider"];
+        [settingsProvider setValue:customControlCenterModules forKey:@"orderedUserEnabledModuleIdentifiers"];
+    }
+
+    self.geminiModuleViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    [mainSwitcherVC addChildViewController:self.geminiModuleViewController];
+}
+
+%new -(void)setupGeminiStructuredListViewController {
+    self.geminiStructuredListViewController = [[%c(NCNotificationStructuredListViewController) alloc] init];
+    [self addChildViewController:self.geminiStructuredListViewController];
+    self.geminiStructuredListViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+    self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.geminiStructuredListViewController.delegate = notifVC.delegate;
+    self.geminiStructuredListViewController.deviceAuthenticated = YES;
+}
+
 %new -(void)handleTap:(UITapGestureRecognizer *)tap {
     self.geminiHasExpandedDynamicView = YES;
     [self showGeminiBlurView:YES makeTopMostView:NO];
@@ -689,7 +745,22 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.isSmall = NO;
             mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
             mainSwitcherVC.currentIdentifier = nil;
-            [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+            switch(additionalViewSelection) {
+                case 0:
+                    break;
+                case 1:
+                    [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+                    [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentOffset:CGPointMake(0,0)];
+                    break;
+                case 2: {
+                    [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
+                    UIVisualEffectView *visualEffectView = (UIVisualEffectView *)mainSwitcherVC.geminiAdditionalView;
+                    [(UIScrollView *)visualEffectView.contentView.subviews[0] setContentOffset:CGPointMake(0,0)];
+                    break;
+                }
+                default:
+                    break;
+            }
             if(additionalViewSelection == 2) {
                 [mainSwitcherVC dismissExpandedDynamicView];
             }
@@ -928,11 +999,30 @@ static void loadPrefs(){
     additionalViewSelection = prefs[@"additionalViewSelection"] ? [prefs[@"additionalViewSelection"] intValue] : 0;
     
     automaticallyPinchSwitcher = prefs[@"automaticallyPinchSwitcher"] ? [prefs[@"automaticallyPinchSwitcher"] boolValue] : NO;
-    
-    showNoOlderNotifications  = prefs[@"showNoOlderNotifications"] ? [prefs[@"showNoOlderNotifications"] boolValue] : NO; //✅
-    autoScrollToNotifs  = prefs[@"autoScrollToNotifs"] ? [prefs[@"autoScrollToNotifs"] boolValue] : NO;
-    reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO; //✅
-    showAllAppNotifications  = prefs[@"showAllAppNotifications"] ? [prefs[@"showAllAppNotifications"] boolValue] : NO; //✅
+    if(additionalViewSelection == 2) {
+        //notif prefs
+        showNoOlderNotifications  = prefs[@"dynamic_showNoOlderNotifications"] ? [prefs[@"dynamic_showNoOlderNotifications"] boolValue] : NO;
+        //autoScrollToNotifs  = prefs[@"autoScrollToNotifs"] ? [prefs[@"autoScrollToNotifs"] boolValue] : NO;
+        reduceAnimations  = prefs[@"dynamic_reduceAnimations"] ? [prefs[@"dynamic_reduceAnimations"] boolValue] : NO;
+        showAllAppNotifications  = prefs[@"dynamic_showAllAppNotifications"] ? [prefs[@"dynamic_showAllAppNotifications"] boolValue] : NO;
+        
+        //cc prefs
+        hasCustomControlCenterModules = prefs[@"dynamic_hasCustomControlCenterModules"] ? [prefs[@"dynamic_hasCustomControlCenterModules"] boolValue] : NO;
+        customControlCenterModules = prefs[@"dynamic_customControlCenterModules"];
+    }
+    else {
+        //notif prefs
+        showNoOlderNotifications  = prefs[@"showNoOlderNotifications"] ? [prefs[@"showNoOlderNotifications"] boolValue] : NO;
+        //autoScrollToNotifs  = prefs[@"autoScrollToNotifs"] ? [prefs[@"autoScrollToNotifs"] boolValue] : NO;
+        reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO;
+        showAllAppNotifications  = prefs[@"showAllAppNotifications"] ? [prefs[@"showAllAppNotifications"] boolValue] : NO;
+        
+        //cc prefs
+        hasCustomControlCenterModules = prefs[@"hasCustomControlCenterModules"] ? [prefs[@"hasCustomControlCenterModules"] boolValue] : NO;
+        customControlCenterModules = prefs[@"customControlCenterModules"];
+    }
+    //dynamic prefs
+    autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : NO;
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {

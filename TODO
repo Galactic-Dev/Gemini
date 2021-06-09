@@ -10,14 +10,11 @@ Bugs:
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
 
 Features:
-- custom control center different from the normal one (select whichever modules you want to show respectively from the main cc) (10)
+//leaving out for the time being
 - automatically scroll to the first app that has notifications //started to work on it but it needs work
-- change additional view if there are no notifications or no music playing (6) (maybe just a feature of the dynamic view instead)
-- show notification badge in header view of app page view (4)
 
 
 - better preferences with more organization, an obwelcomecontroller, etc. (5)
-- make sure most if not all options can be applied without the use of a respring, besides enabling/disabling the tweak ofc (10)
 
 
 Devices that i've checked sizing with: (two checks mean i've checked with the latest sizing and with the dynamic view)

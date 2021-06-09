@@ -16,13 +16,16 @@ OBWelcomeController *welcomeController;
 
 -(void)viewDidLoad {
 	[super viewDidLoad];
-	//[self setupWelcomeController];
 
-	UISwitch *enabledSwitch = [[UISwitch alloc] initWithFrame:CGRectMake(0, 0, 51, 31)];
+	UISwitch *enabledSwitch = [[UISwitch alloc] initWithFrame:CGRectZero];
 	[enabledSwitch addTarget:self action:@selector(enabledSwitchChanged:) forControlEvents:UIControlEventValueChanged];
 	NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
-	NSMutableDictionary *settings = [NSMutableDictionary dictionary];
-	[settings addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:path]];
+	NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithContentsOfFile:path];
+    BOOL shownWelcomeController = [settings[@"shownWelcomeController"] boolValue];
+    if(!shownWelcomeController) {
+        [self setupWelcomeController];
+    }
+    
 	NSNumber *isEnabled = [settings valueForKey:@"isEnabled"] ?: @1;
 	if([isEnabled isEqual:@1]){
 		[enabledSwitch setOn:YES animated:NO];
@@ -72,8 +75,7 @@ OBWelcomeController *welcomeController;
 	if (enabledSwitch.on){
 		//Sleeping to give time for UISwitch animating to complete. It just looks cleaner that way.
 		NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
-		NSMutableDictionary *settings = [NSMutableDictionary dictionary];
-		[settings addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:path]];
+		NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithContentsOfFile:path];
 		[settings setObject:@1 forKey:@"isEnabled"];
 		[settings writeToFile:path atomically:YES];
 		[NSThread sleepForTimeInterval:0.3f];
@@ -93,39 +95,30 @@ OBWelcomeController *welcomeController;
 }
 
 -(void)setupWelcomeController {
-	// Create the OBWelcomeView with a title, a desription text, and an icon if you wish. Any of this can be nil if it doesn't apply to your view.
-	welcomeController = [[OBWelcomeController alloc] initWithTitle:@"OBWelcomeController Example" detailText:@"This is some text to welcome you. Please take off your shoes before entering." icon:[UIImage systemImageNamed:@"gear"]];
+	welcomeController = [[OBWelcomeController alloc] initWithTitle:@"Gemini" detailText:@"Utilize your App Switcher like never before!" icon:[UIImage systemImageNamed:@"sparkles"]];
 
-	// Create a bulleted item with a title, description, and icon. Any of the parameters can be set to nil if you wish. You can have as little or as many of these as you wish. The view automatically compensates for adjustments.
-	[welcomeController addBulletedListItemWithTitle:@"Point One" description:@"Something important may go here, or it may not even be important. Who cares, amirite?" image:[UIImage systemImageNamed:@"1.circle.fill"]];
-	[welcomeController addBulletedListItemWithTitle:@"Point Two" description:@"It's a bird! Wait, no! It's a plane! Haha, just kidding, it's an OBWelcomeController." image:[UIImage systemImageNamed:@"2.circle.fill"]];
-	[welcomeController addBulletedListItemWithTitle:@"Point Three" description:@"Do people even read these? Like, people don't read the Terms & Conditions, so why would this be any different?" image:[UIImage systemImageNamed:@"3.circle.fill"]];
+	[welcomeController addBulletedListItemWithTitle:@"Control Center" description:@"Bring the Control Center into you App Switcher in a premium fashion, and the option to choose whatever modules you want." image:[UIImage systemImageNamed:@"rectangle.3.offgrid.fill"]];
+	[welcomeController addBulletedListItemWithTitle:@"Notification Center" description:@"Show your app's notifications right in the App Switcher, with sorting so you only see notifications for the app you're hovering over in the switcher." image:[UIImage systemImageNamed:@"app.badge"]];
+	[welcomeController addBulletedListItemWithTitle:@"Dynamic" description:@"Combine both Control and Notification Centers in one dynamic view with the option to intelligently switch between views." image:[UIImage systemImageNamed:@"square.stack.3d.down.right.fill"]];
 
-	// Create your button here, set some properties, and add it to the controller.
 	OBBoldTrayButton* continueButton = [OBBoldTrayButton buttonWithType:1];
 	[continueButton addTarget:self action:@selector(dismissVC) forControlEvents:UIControlEventTouchUpInside];
 	[continueButton setTitle:@"Continue" forState:UIControlStateNormal];
-	[continueButton setClipsToBounds:YES]; // There seems to be an internal issue with the properties, so you may need to force this to YES like so.
-	[continueButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal]; // There seems to be an internal issue with the properties, so you may need to force this to be [UIColor whiteColor] like so.
-	[continueButton.layer setCornerRadius:15]; // Set your button's corner radius. This can be whatever. If this doesn't work, make sure you make setClipsToBounds to YES.
+	[continueButton setClipsToBounds:YES];
+	[continueButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+	[continueButton.layer setCornerRadius:15];
 	[welcomeController.buttonTray addButton:continueButton];
 
-	//The caption text goes right above the buttons, sort of like as a thank you or disclaimer.
-	[welcomeController.buttonTray addCaptionText:@"Thank you for using this tutorial on how to use an OBWelcomeView."];
+	[welcomeController.buttonTray addCaptionText:@"Thank you for purchasing Gemini"];
 
-	welcomeController.modalPresentationStyle = UIModalPresentationPageSheet; // The same style stock iOS uses.
-	welcomeController.modalInPresentation = YES; //Set this to yes if you don't want the user to dismiss this on a down swipe.
-	[self presentViewController:welcomeController animated:YES completion:nil]; // Don't forget to present it!
+	welcomeController.modalPresentationStyle = UIModalPresentationPageSheet;
+	welcomeController.modalInPresentation = YES;
+	[self presentViewController:welcomeController animated:YES completion:nil];
 }
 
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 	tableView.tableHeaderView = self.headerView;
 	return [super tableView:tableView cellForRowAtIndexPath:indexPath];
-}
-
--(void)loadView {
-			[super loadView];
-
 }
 
 -(id)readPreferenceValue:(PSSpecifier *)specifier {
@@ -148,6 +141,10 @@ OBWelcomeController *welcomeController;
 }
 
 -(void)dismissVC {
+    NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
+    NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithContentsOfFile:path];
+    [settings setObject:@1 forKey:@"shownWelcomeController"];
+    [settings writeToFile:path atomically:YES];
 	[welcomeController dismissViewControllerAnimated:YES completion:nil];
 }
 

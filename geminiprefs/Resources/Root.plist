@@ -27,6 +27,8 @@
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
 			<key>enabled</key>
 			<true/>
 			<key>label</key>
@@ -39,6 +41,25 @@
             <string>com.galacticdev.geminiprefs.changed</string>
             <key>key</key>
             <string>automaticallyPinchSwitcher</string>
+            <key>infoTitle</key>
+            <string>Automatically Pinch Switcher</string>
+            <key>infoIcon</key>
+            <string>arrow.down.right.and.arrow.up.left</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>When opening the switcher, the switcher will automatically be resized to its smaller size, without the need for the user to pinch it.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -63,6 +84,8 @@
 			</array>
             <key>key</key>
             <string>additionalViewSelection</string>
+            <key>default</key>
+            <string>0</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -100,7 +123,7 @@
 		</dict>
 		<dict>
 			<key>action</key>
-			<string>presentCellSelector</string>
+			<string>setupWelcomeController</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>enabled</key>
@@ -110,6 +133,6 @@
 		</dict>
 	</array>
 	<key>title</key>
-	<string>Gemini</string>
+	<string></string>
 </dict>
 </plist>

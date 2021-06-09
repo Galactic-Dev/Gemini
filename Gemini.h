@@ -53,9 +53,17 @@
 +(instancetype)repositoryWithDefaults;
 @end
 
+@interface CCSModuleSettingsProvider : NSObject
+@end
+
+@interface CCUIModuleSettingsManager : NSObject
+@end
+
 @interface CCUIModuleInstanceManager : NSObject
 -(instancetype)_initWithSystemAgent:(SBControlCenterSystemAgent *)arg1 repository:(CCSModuleRepository *)arg2;
 +(instancetype)sharedInstance;
+@property (strong, nonatomic) NSSet *enabledModuleIdentifiers;
+-(void)_updateModuleInstances;
 @end
 
 @interface CCUIModuleCollectionViewController : UIViewController
@@ -76,6 +84,7 @@
 -(void)insertNotificationRequest:(id)arg1;
 -(void)removeNotificationRequest:(id)arg1;
 @property (strong, nonatomic) UIView *revealHintView;
+@property (nonatomic, assign) NSUInteger notificationCount;
 @end
 
 @interface NCNotificationMasterList : NSObject
@@ -120,6 +129,9 @@
 @property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
 @property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
 @property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterHeightAnchor;
+-(void)setupGeminiModuleViewController;
+-(void)setupGeminiStructuredListViewController;
+@property (strong, nonatomic) CCUIModuleInstanceManager *geminiModuleInstanceManager;
 @end
 
 @interface AXNView : UIView

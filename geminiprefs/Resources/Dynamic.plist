@@ -9,6 +9,210 @@
             <string>PSGroupCell</string>
             <key>label</key>
             <string>Dynamic Options</string>
+            <key>footerText</key>
+            <string>The dynamic view combines the Control and Notification Centers in one view</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
+            <key>label</key>
+            <string>Auto Scroll Dynamic View</string>
+            <key>key</key>
+            <string>autoScrollDynamicView</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>infoTitle</key>
+            <string>Auto Scroll Dynamic View</string>
+            <key>infoIcon</key>
+            <string>arrow.left.and.right.circle.fill</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>Automatically switches between the Control and Notification Centers depending on whether or not the focused app has notifications.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
+        </dict>
+        
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>Control Center Options</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>label</key>
+            <string>Custom Control Center Modules</string>
+            <key>id</key>
+            <string>hasCustomControlCenterModules</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key><string>dynamic_hasCustomControlCenterModules</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSLinkCell</string>
+            <key>id</key>
+            <string>controlCenterLinkCell</string>
+            <key>bundle</key>
+            <string>ControlCenterSettings</string>
+            <key>isController</key>
+            <true/>
+            <key>label</key>
+            <string>Control Center</string>
+            <key>lazy-bundle</key>
+            <string>/System/Library/PreferenceBundles/ControlCenterSettings.bundle</string>
+            <key>loadAction</key>
+            <string>lazyLoadBundle:</string>
+            <key>detail</key>
+            <string>GMNSettingsListController</string>
+            <key>overridePrincipalClass</key>
+            <true/>
+        </dict>
+        
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Notification Options</string>
+        </dict>
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Show "No Older Notifications"</string>
+            <key>key</key><string>dynamic_showNoOlderNotifications</string>
+            <key>default</key>
+            <false/>
+        </dict>
+        <!--<dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+        <key>cellClass</key>
+        <string>GMNSwitchWithInfoCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Auto Scroll To Notifications</string>
+            <key>key</key><string>dynamic_autoScrollToNotifs</string>
+            <key>default</key>
+            <false/>
+        </dict>-->
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Reduce Animations</string>
+            <key>key</key><string>dynamic_reduceAnimations</string>
+            <key>default</key>
+            <false/>
+            <key>infoTitle</key>
+            <string>Reduce Animations</string>
+            <key>infoIcon</key>
+            <string>xmark.circle.fill</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>Turns off animations when inserting/deleting notifications</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>footerText</key>
+            <string></string>
+        </dict>
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Show All App Notifications</string>
+            <key>key</key><string>dynamic_showAllAppNotifications</string>
+            <key>default</key>
+            <false/>
+            <key>infoTitle</key>
+            <string>Show All App Notifications</string>
+            <key>infoIcon</key>
+            <string>app.badge</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>Shows all notifications instead of the app currently focused on.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
         </dict>
     </array>
     <key>title</key>

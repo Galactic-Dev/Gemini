@@ -10,6 +10,42 @@
             <key>label</key>
             <string>Control Center Options</string>
         </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>label</key>
+            <string>Custom Control Center Modules</string>
+            <key>id</key>
+            <string>hasCustomControlCenterModules</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>hasCustomControlCenterModules</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSLinkCell</string>
+            <key>id</key>
+            <string>controlCenterLinkCell</string>
+            <key>bundle</key>
+            <string>ControlCenterSettings</string>
+            <key>isController</key>
+            <true/>
+            <key>label</key>
+            <string>Control Center</string>
+            <key>lazy-bundle</key>
+            <string>/System/Library/PreferenceBundles/ControlCenterSettings.bundle</string>
+            <key>loadAction</key>
+            <string>lazyLoadBundle:</string>
+            <key>detail</key>
+            <string>GMNSettingsListController</string>
+            <key>overridePrincipalClass</key>
+            <true/>
+        </dict>
     </array>
     <key>title</key>
     <string>Control Center Options</string>

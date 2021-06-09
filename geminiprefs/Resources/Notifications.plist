@@ -9,8 +9,8 @@
 			<string>PSGroupCell</string>
 			<key>enabled</key>
 			<true/>
-			<key>footerText</key>
-			<string></string>
+			<key>label</key>
+			<string>Notification Options</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -28,11 +28,13 @@
             <key>default</key>
             <false/>
 		</dict>
-		<dict>
+		<!--<dict>
 			<key>PostNotification</key>
 			<string>com.galacticdev.geminiprefs.changed</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
+        <key>cellClass</key>
+        <string>GMNSwitchWithInfoCell</string>
 			<key>defaults</key>
 			<string>com.galacticdev.geminiprefs</string>
 			<key>enabled</key>
@@ -43,12 +45,14 @@
             <string>autoScrollToNotifs</string>
             <key>default</key>
             <false/>
-		</dict>
+		</dict>-->
         <dict>
             <key>PostNotification</key>
             <string>com.galacticdev.geminiprefs.changed</string>
             <key>cell</key>
             <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
             <key>defaults</key>
             <string>com.galacticdev.geminiprefs</string>
             <key>enabled</key>
@@ -59,6 +63,25 @@
             <string>reduceAnimations</string>
             <key>default</key>
             <false/>
+            <key>infoTitle</key>
+            <string>Reduce Animations</string>
+            <key>infoIcon</key>
+            <string>xmark.circle.fill</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>Turns off animations when inserting/deleting notifications</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
         </dict>
 		<dict>
 			<key>cell</key>
@@ -73,6 +96,8 @@
 			<string>com.galacticdev.geminiprefs.changed</string>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
 			<key>defaults</key>
 			<string>com.galacticdev.geminiprefs</string>
 			<key>enabled</key>
@@ -83,6 +108,25 @@
             <string>showAllAppNotifications</string>
             <key>default</key>
             <false/>
+            <key>infoTitle</key>
+            <string>Show All App Notifications</string>
+            <key>infoIcon</key>
+            <string>app.badge</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>Shows all notifications in the switcher instead of the app currently focused on.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
 		</dict>
 	</array>
 	<key>title</key>
