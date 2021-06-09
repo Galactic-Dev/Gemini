@@ -324,14 +324,14 @@ BOOL dismissingMusicModule;
             UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
             if(visualEffectView.class == [UIVisualEffectView class]) {
                 UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
-                [scrollView setContentOffset:CGPointMake(scrollView.frame.size.width*1, 0.0f) animated:YES];
+                [scrollView setContentOffset:CGPointMake(scrollView.maximumContentOffset.x, 0.0f) animated:YES];
             }
         }
         else {
             UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
             if(visualEffectView.class == [UIVisualEffectView class]) {
                 UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
-                [scrollView setContentOffset:CGPointMake(scrollView.frame.size.width*0, 0.0f) animated:YES];
+                [scrollView setContentOffset:CGPointMake(0, 0.0f) animated:YES];
             }
         }
     }
@@ -371,10 +371,6 @@ BOOL dismissingMusicModule;
                     [self.geminiStructuredListViewController.masterListView.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.masterListView.frame.size.width].active = YES;
                     
                     self.geminiAdditionalView = self.geminiStructuredListViewController.view;
-
-                    self.geminiStructuredListViewController.delegate = notifVC.delegate;
-                    self.geminiStructuredListViewController.deviceAuthenticated = YES;
-                    self.geminiAdditionalView.clipsToBounds = YES;
 
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this it makes notifs insert when first pinching switcher
                     break;
@@ -539,6 +535,23 @@ BOOL dismissingMusicModule;
                 }
             }
         }
+        
+        if(autoScrollDynamicView && additionalViewSelection == 2) {
+            if(self.geminiStructuredListViewController.masterList.notificationSections[0].notificationCount > 0) {
+                UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
+                if(visualEffectView.class == [UIVisualEffectView class]) {
+                    UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
+                    [scrollView setContentOffset:CGPointMake(scrollView.maximumContentOffset.x, 0.0f) animated:YES];
+                }
+            }
+            else {
+                UIVisualEffectView *visualEffectView = (UIVisualEffectView *)self.geminiAdditionalView;
+                if(visualEffectView.class == [UIVisualEffectView class]) {
+                    UIScrollView *scrollView = visualEffectView.contentView.subviews[0];
+                    [scrollView setContentOffset:CGPointMake(0, 0.0f) animated:YES];
+                }
+            }
+        }
 
         self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
         self.geminiAdditionalView.alpha = 1;
@@ -628,6 +641,7 @@ BOOL dismissingMusicModule;
     self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
     self.geminiStructuredListViewController.delegate = notifVC.delegate;
     self.geminiStructuredListViewController.deviceAuthenticated = YES;
+    self.geminiAdditionalView.clipsToBounds = YES;
 }
 
 %new -(void)handleTap:(UITapGestureRecognizer *)tap {

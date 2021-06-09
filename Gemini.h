@@ -8,6 +8,10 @@
 -(id)_rootAncestorViewController;
 @end
 
+@interface UIScrollView (Private)
+@property (nonatomic, assign, getter=_maximumContentOffset) CGPoint maximumContentOffset;
+@end
+
 @interface NSDistributedNotificationCenter : NSNotificationCenter
 -(void)addObserver:(id)arg1 selector:(SEL)arg2 name:(id)arg3 object:(id)arg4;
 @end
