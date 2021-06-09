@@ -351,7 +351,14 @@ BOOL dismissingMusicModule;
                     [self setupGeminiStructuredListViewController];
                     [self.view addSubview:self.geminiStructuredListViewController.view];
                     
-                    CGFloat switcherHeight = self.view.frame.size.height * 0.75;
+                    CGFloat switcherHeight;
+                    if(self.view.frame.size.height <= 568) {
+                        switcherHeight = (self.view.frame.size.height ) * 0.65;
+                    }
+                    else {
+                        switcherHeight = (self.view.frame.size.height ) * 0.75;
+                    }
+
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
                     CGFloat height = (screenHeight - switcherHeight) + 130;
                     
@@ -359,7 +366,8 @@ BOOL dismissingMusicModule;
                         [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-85].active = YES;
                     }
                     else {
-                        [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        if(self.view.frame.size.height <= 568) [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                        else [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
                     }
                     
                     [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:height].active = YES;
@@ -384,7 +392,14 @@ BOOL dismissingMusicModule;
                     
                     scrollView.translatesAutoresizingMaskIntoConstraints = NO;
                     
-                    CGFloat switcherHeight = self.view.frame.size.height * 0.75;
+                    CGFloat switcherHeight;
+                    if(self.view.frame.size.height <= 568) {
+                        switcherHeight = (self.view.frame.size.height ) * 0.65;
+                    }
+                    else {
+                        switcherHeight = (self.view.frame.size.height ) * 0.75;
+                    }
+
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
                     CGFloat height = (screenHeight - switcherHeight) + 140;
                     
@@ -395,7 +410,8 @@ BOOL dismissingMusicModule;
                         [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
                     }
                     else {
-                        [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        if(self.view.frame.size.height <= 568) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                        else [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-60].active = YES;
                     }
                     
                     [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
@@ -427,7 +443,9 @@ BOOL dismissingMusicModule;
                     [self.view addSubview:dynamicContainerView];
                     [dynamicContainerView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor constant:-36].active = YES;
                     
-                    CGFloat switcherHeight = self.view.frame.size.height * 0.75;
+                    CGFloat switcherHeight;
+                    if(self.view.frame.size.height <= 568) switcherHeight = self.view.frame.size.height * 0.65;
+                    else switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
                     CGFloat height = (screenHeight - switcherHeight) + 100;
                     self.geminiDynamicHeightAnchor = [dynamicContainerView.heightAnchor constraintEqualToConstant:height];
@@ -437,7 +455,8 @@ BOOL dismissingMusicModule;
                         [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-90].active = YES;
                     }
                     else {
-                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        if(self.view.frame.size.height <= 568) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                        else [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
                     }
                     self.geminiAdditionalView = dynamicContainerView;
                     
@@ -508,14 +527,21 @@ BOOL dismissingMusicModule;
                 
                 view.translatesAutoresizingMaskIntoConstraints = NO;
                 
-                CGFloat switcherHeight = (self.view.frame.size.height ) * 0.75;
+                CGFloat switcherHeight;
+                if(self.view.frame.size.height <= 568) {
+                    switcherHeight = (self.view.frame.size.height ) * 0.65;
+                }
+                else {
+                    switcherHeight = (self.view.frame.size.height ) * 0.75;
+                }
                 CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
                 CGFloat height = (screenHeight - switcherHeight) + 130;
                 if([UIDevice.currentDevice isNotched]) {
-                    [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-85].active = YES;
+                    [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
                 }
                 else {
-                    [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                    if(self.view.frame.size.height <= 568) [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                    else [view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-60].active = YES;
                 }
                 
                 [view.widthAnchor constraintEqualToConstant:self.view.frame.size.width].active = YES;
@@ -557,10 +583,14 @@ BOOL dismissingMusicModule;
         self.geminiAdditionalView.alpha = 1;
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
             self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 115, self.view.frame.size.width, self.view.frame.size.height);
-            self.view.transform = CGAffineTransformMakeScale(.75, .75);
-
-            self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
-            
+            if(self.view.frame.size.height <= 568) {
+                self.view.transform = CGAffineTransformMakeScale(.65, .65);
+                self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.30,1.30);
+            }
+            else {
+                self.view.transform = CGAffineTransformMakeScale(.75, .75);
+                self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+            }
             return;
         } completion:^(BOOL finished) {
             //needs work
