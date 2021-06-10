@@ -10,7 +10,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = Gemini
 
 Gemini_FILES = Gemini.x GeminiSwitcherView.m UIDevice+notchedDevice.m
-Gemini_CFLAGS = -fobjc-arc -Wno-nullability-completeness
+Gemini_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += geminiprefs

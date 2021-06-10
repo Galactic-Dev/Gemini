@@ -67,6 +67,13 @@ BOOL dismissingMusicModule;
     %orig;
 }
 %end
+//iOS 13 version of whats above
+%hook MediaControlsEndpointsViewController
+-(void)setDismissing:(BOOL)arg1 {
+    RLog(@"dismissing %d", arg1);
+    %orig;
+}
+%end
 
 %hook CCUIModuleInstanceManager
 -(void)setEnabledModuleIdentifiers:(NSSet *)arg1 {
@@ -121,6 +128,7 @@ BOOL dismissingMusicModule;
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
     if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
         %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
+        //%orig(UIEdgeInsetsMake(0,2.5,10,0)); //this centers the cc on on iphone 8 ios 13, need to figure out if this is a notch or ios specific thing.
     }
     else {
         %orig;
@@ -757,7 +765,7 @@ BOOL dismissingMusicModule;
 %new
 -(void)GMNShowTestNotifications {
     //add notifications for currently opened apps
-    NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
+    NSArray *mainAppLayouts = [self valueForKey:@"_mainAppLayouts"];
     for(int i = 0; i < [mainAppLayouts count]; i++ ){
         SBAppLayout *appLayout = mainAppLayouts[i];
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];

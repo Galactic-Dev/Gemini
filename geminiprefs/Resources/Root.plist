@@ -32,7 +32,7 @@
 			<key>enabled</key>
 			<true/>
 			<key>label</key>
-			<string>Automatically Pinch Switcher</string>
+			<string>Auto Pinch Switcher</string>
             <key>default</key>
             <false/>
             <key>defaults</key>
