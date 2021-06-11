@@ -121,6 +121,10 @@
             <key>detail</key>
             <string>GMNCreditsController</string>
 		</dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+        </dict>
 		<dict>
 			<key>action</key>
 			<string>setupWelcomeController</string>
@@ -131,6 +135,28 @@
 			<key>label</key>
 			<string>Tweak Info</string>
 		</dict>
+        <dict>
+
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Reset Settings</string>
+            <key>confirmation</key>
+            <dict>
+                <key>prompt</key>
+                <string>Are you sure you want to reset settings? This will cause all of Gemini's options to be set to the default configuration, and respring your device.</string>
+                <key>title</key>
+                <string>Yes</string>
+                <key>cancelTitle</key>
+                <string>Cancel</string>
+            </dict>
+            <key>isDestructive</key>
+            <true/>
+            <key>action</key>
+            <string>resetSettings</string>
+        </dict>
 	</array>
 	<key>title</key>
 	<string></string>

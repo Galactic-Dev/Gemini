@@ -3,6 +3,7 @@
 NCNotificationStructuredListViewController *notifVC;
 SBMainSwitcherViewController *mainSwitcherVC;
 long long environmentMode;
+RPControlCenterClient *mainCCRPClient;
 
 NSTimeInterval lastOffsetCaptured;
 
@@ -30,6 +31,27 @@ NSArray *customControlCenterModules;
 BOOL autoScrollDynamicView;
 
 %group Main
+
+//fixes screen recording module not syncing up
+%hook RPControlCenterClient
+-(instancetype)init {
+    RPControlCenterClient *orig = %orig;
+    if(!mainCCRPClient) {
+        mainCCRPClient = orig;
+    }
+    return orig;
+}
+%end
+
+%hook RPControlCenterModule
+-(instancetype)init {
+    id orig = %orig;
+    if(mainCCRPClient) {
+        [self setValue:mainCCRPClient forKey:@"_client"];
+    }
+    return orig;
+}
+%end
 
 //fixes volume hud not showing when moduleviewcontroller is presented
 %hook MediaControlsVolumeViewController
@@ -70,7 +92,6 @@ BOOL dismissingMusicModule;
 //iOS 13 version of whats above
 %hook MediaControlsEndpointsViewController
 -(void)setDismissing:(BOOL)arg1 {
-    RLog(@"dismissing %d", arg1);
     %orig;
 }
 %end
@@ -765,7 +786,7 @@ BOOL dismissingMusicModule;
 %new
 -(void)GMNShowTestNotifications {
     //add notifications for currently opened apps
-    NSArray *mainAppLayouts = [self valueForKey:@"_mainAppLayouts"];
+    NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
     for(int i = 0; i < [mainAppLayouts count]; i++ ){
         SBAppLayout *appLayout = mainAppLayouts[i];
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
@@ -827,7 +848,16 @@ BOOL dismissingMusicModule;
         mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
     }
     if(arg1 == 2 && automaticallyPinchSwitcher) {
-        [mainSwitcherVC handlePinch:nil];
+        if(@available(iOS 14, *)) {
+            if([[mainSwitcherVC valueForKey:@"_appLayouts"] count] > 0) {
+                [mainSwitcherVC handlePinch:nil];
+            }
+        }
+        else {
+            if([[mainSwitcherVC valueForKey:@"_mainApplayouts"] count] > 0) {
+                [mainSwitcherVC handlePinch:nil];
+            }
+        }
     }
 }
 %end
@@ -1108,6 +1138,8 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
     
     if(isEnabled) {
+        NSBundle* moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
+        if (!moduleBundle.loaded) [moduleBundle load];
         %init(Main);
         if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
             %init(Sylph);

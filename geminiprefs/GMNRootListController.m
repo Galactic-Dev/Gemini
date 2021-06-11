@@ -142,7 +142,13 @@ OBWelcomeController *welcomeController;
 
 -(void)dismissVC {
     NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
-    NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithContentsOfFile:path];
+    NSMutableDictionary *settings;
+    if([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+        settings = [NSMutableDictionary dictionaryWithContentsOfFile:path];
+    }
+    else {
+        settings = [NSMutableDictionary dictionary];
+    }
     [settings setObject:@1 forKey:@"shownWelcomeController"];
     [settings writeToFile:path atomically:YES];
 	[welcomeController dismissViewControllerAnimated:YES completion:nil];
@@ -160,5 +166,12 @@ OBWelcomeController *welcomeController;
 	NSTask *task = [[NSTask alloc] init];
 	[task setLaunchPath:@"/usr/bin/sbreload"];
 	[task launch];
+}
+-(void)resetSettings {
+    NSString *path = @"/User/Library/Preferences/com.galacticdev.geminiprefs.plist";
+    [[NSFileManager defaultManager] removeItemAtPath:path error:nil];
+    NSTask *task = [[NSTask alloc] init];
+    [task setLaunchPath:@"/usr/bin/sbreload"];
+    [task launch];
 }
 @end

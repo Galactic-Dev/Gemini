@@ -6,17 +6,15 @@ priorities:
 
 
 Bugs:
-- need to respring to fix changes with cc setup (8)
 - on ios 13 the music module wont close (9)
-- screen recording module not syncing across different cc's (4)
+- the cc in the dynamic view isn't centerd on some devices (there is a fix commented out but i need to test more to figure out what devices use which version of the code) (9)
+- power module acts weird (fixed by calling viewWillAppear: so figure that out) (5)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
 
 Features:
-//leaving out for the time being
-- automatically scroll to the first app that has notifications //started to work on it but it needs work
+tweak icon
 
 
-- better preferences with more organization, an obwelcomecontroller, etc. (5)
 
 
 Devices that i've checked sizing with: (two checks mean i've checked with the latest sizing and with the dynamic view)

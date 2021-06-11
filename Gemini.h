@@ -38,6 +38,25 @@
 @end
 
 //Control Center Stuff
+@interface PowerUIModuleContentViewController : UIViewController
+@end
+
+@interface RPControlCenterClient : NSObject
+@property (nonatomic, assign) BOOL broadcastMode;
+@property (nonatomic, assign) BOOL microphoneOn;
+@property (nonatomic, assign) BOOL isInitialized;
+@property (nonatomic, assign) BOOL shouldShowMicButton;
+@property (nonatomic, assign) BOOL lockUIControls;
+@property (nonatomic, assign) BOOL isCountingDown;
+@property (nonatomic, assign) BOOL recordingOn;
+@property (strong, nonatomic) NSString *extensionBundleID;
+@property (strong, nonatomic) NSString *preferredExtension;
+@property (strong, nonatomic) NSString *currentTimerString;
+@end
+
+@interface RPControlCenterModule : NSObject
+@end
+
 @interface CCUIModuleCollectionView : UIView
 @property (nonatomic, assign) UIEdgeInsets edgeInsets;
 @end
