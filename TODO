@@ -11,7 +11,17 @@ Bugs:
 - power module acts weird (fixed by calling viewWillAppear: so figure that out) (5)
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
 
-Features:
+Features list:
+- Choose between showing the Control Center, Notification Center, or a Dynamic combination of both in your App Switcher, which can be accessed by just pinching the switcher.
+- When selecting the Notification Center option, it sorts your notifications by app and only shows notifications in the switcher for the app that is being focused on.
+- Option to automatically pinch the switcher when you open it.
+- Option to make the Control Center in the switcher have different modules than the main control center.
+- Option to show "No Older Notifications" text in the Notification Center
+- An option to disable animations for inserting/deleting notifications in the switcher.
+- An option to show all app notifications in the switcher instead of showing notifications only for the app focused on.
+- An option to automatically scroll the Dynamic view based on whether you have notifications or not.
+
+Features to add:
 tweak icon
 
 

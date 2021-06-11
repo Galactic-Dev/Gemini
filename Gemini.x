@@ -1110,7 +1110,7 @@ static void loadPrefs(){
         customControlCenterModules = prefs[@"customControlCenterModules"];
     }
     //dynamic prefs
-    autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : NO;
+    autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : YES;
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
