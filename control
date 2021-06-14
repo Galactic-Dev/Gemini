@@ -1,9 +1,9 @@
 Package: com.galacticdev.gemini
 Name: Gemini
-Depends: mobilesubstrate, com.opa334.ccsupport
-Version: 1.0~b1
+Depends: mobilesubstrate, com.opa334.ccsupport, preferenceloader
+Version: 1.0~b5
 Architecture: iphoneos-arm
-Description: Gemini | Redefine your app switcher with notifications, music player, and more.
+Description: Utilize your App Switcher like never before!.
 Maintainer: GalacticDev
 Author: GalacticDev
 Section: Tweaks

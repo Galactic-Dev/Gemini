@@ -26,12 +26,12 @@ BOOL showAllAppNotifications;
 //cc prefs
 BOOL hasCustomControlCenterModules;
 NSArray *customControlCenterModules;
+BOOL screenRecordingSync;
 
 //dynamic prefs
 BOOL autoScrollDynamicView;
 
-%group Main
-
+%group RPFix
 //fixes screen recording module not syncing up
 %hook RPControlCenterClient
 -(instancetype)init {
@@ -52,7 +52,9 @@ BOOL autoScrollDynamicView;
     return orig;
 }
 %end
+%end
 
+%group Main
 //fixes volume hud not showing when moduleviewcontroller is presented
 %hook MediaControlsVolumeViewController
 -(BOOL)isOnScreen {
@@ -91,8 +93,9 @@ BOOL dismissingMusicModule;
 %end
 //iOS 13 version of whats above
 %hook MediaControlsEndpointsViewController
--(void)setDismissing:(BOOL)arg1 {
+-(void)_handleScrollViewTap:(id)arg1 {
     %orig;
+    [mainSwitcherVC.geminiModuleViewController dismissPresentedContentAnimated:YES completion:nil];
 }
 %end
 
@@ -148,8 +151,12 @@ BOOL dismissingMusicModule;
 }
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
     if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
-        %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
-        //%orig(UIEdgeInsetsMake(0,2.5,10,0)); //this centers the cc on on iphone 8 ios 13, need to figure out if this is a notch or ios specific thing.
+        if([[UIDevice currentDevice] isNotched]) {
+            %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
+        }
+        else {
+            %orig(UIEdgeInsetsMake(5,2.5,10,0)); //this centers the cc on on iphone 8 ios 13, need to figure out if this is a notch or ios specific thing.
+        }
     }
     else {
         %orig;
@@ -186,7 +193,10 @@ BOOL dismissingMusicModule;
         %orig;
         return;
     }
-    
+    if(self.presentedViewController.childViewControllers[0].presentedViewController) {
+        %orig(NO, arg2);
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
     if(self.presentedViewController.childViewControllers[0].class == %c(MRUControlCenterViewController)) {
         dismissingMusicModule = YES;
     }
@@ -254,6 +264,7 @@ BOOL dismissingMusicModule;
     %orig;
     mainSwitcherVC = self;
     self.isSmall = NO;
+    [self showGeminiBlurView:NO makeTopMostView:NO];
 
     //replaces the mainSwitcherVC's view with a custom UIView subclass so that I can override the hitTest:withEvent: method
     NSArray *subviews = self.view.subviews;
@@ -408,6 +419,7 @@ BOOL dismissingMusicModule;
                     [self.geminiStructuredListViewController.masterListView.widthAnchor constraintEqualToConstant:self.geminiStructuredListViewController.masterListView.frame.size.width].active = YES;
                     
                     self.geminiAdditionalView = self.geminiStructuredListViewController.view;
+                    self.geminiAdditionalView.clipsToBounds = YES;
 
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this it makes notifs insert when first pinching switcher
                     break;
@@ -430,7 +442,13 @@ BOOL dismissingMusicModule;
                     }
 
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-                    CGFloat height = (screenHeight - switcherHeight) + 140;
+                    CGFloat height;
+                    if([UIDevice.currentDevice isNotched]) {
+                        height = (screenHeight - switcherHeight) + 140;
+                    }
+                    else {
+                        height = (screenHeight - switcherHeight) + 110;
+                    }
                     
                     [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
                     [scrollView.heightAnchor constraintEqualToConstant:height].active = YES;
@@ -476,7 +494,14 @@ BOOL dismissingMusicModule;
                     if(self.view.frame.size.height <= 568) switcherHeight = self.view.frame.size.height * 0.65;
                     else switcherHeight = self.view.frame.size.height * 0.75;
                     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-                    CGFloat height = (screenHeight - switcherHeight) + 100;
+                    
+                    CGFloat height;
+                    if([UIDevice.currentDevice isNotched]) {
+                        height = (screenHeight - switcherHeight) + 100;
+                    }
+                    else {
+                        height = (screenHeight - switcherHeight) + 90;
+                    }
                     self.geminiDynamicHeightAnchor = [dynamicContainerView.heightAnchor constraintEqualToConstant:height];
                     self.geminiDynamicHeightAnchor.active = YES;
                     [dynamicContainerView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
@@ -672,6 +697,7 @@ BOOL dismissingMusicModule;
             }
         }];
         self.isSmall = NO;
+        [self showGeminiBlurView:NO makeTopMostView:NO];
         self.contentViewController.appSuggestionController.view.hidden = NO;
         self.currentIdentifier = nil;
     }
@@ -700,7 +726,6 @@ BOOL dismissingMusicModule;
     self.geminiStructuredListViewController.masterListView.translatesAutoresizingMaskIntoConstraints = NO;
     self.geminiStructuredListViewController.delegate = notifVC.delegate;
     self.geminiStructuredListViewController.deviceAuthenticated = YES;
-    self.geminiAdditionalView.clipsToBounds = YES;
 }
 
 %new -(void)handleTap:(UITapGestureRecognizer *)tap {
@@ -759,8 +784,8 @@ BOOL dismissingMusicModule;
     if(!self.geminiBlurView) {
         UIVisualEffect *blurEffect;
         blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-        mainSwitcherVC.geminiBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-        mainSwitcherVC.geminiBlurView.frame = CGRectMake(-1000,-200,2000,2000); //why why why why why
+        self.geminiBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        self.geminiBlurView.frame = CGRectMake(-1000,-200,2000,2000); //why why why why why
     }
     
     if(shouldShow) {
@@ -822,6 +847,7 @@ BOOL dismissingMusicModule;
             mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 115, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
             mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             mainSwitcherVC.isSmall = NO;
+            [mainSwitcherVC showGeminiBlurView:NO makeTopMostView:NO];
             mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
             mainSwitcherVC.currentIdentifier = nil;
             switch(additionalViewSelection) {
@@ -1020,7 +1046,7 @@ BOOL dismissingMusicModule;
 %end
 
 
-
+/*
 %group Sylph
 //Fixes Sylph bug. Thank god for hopper amirite.
 %hook MediaControlsTransportStackView
@@ -1078,7 +1104,7 @@ BOOL dismissingMusicModule;
 }
 %end
 //End of Sylph support hooks
-%end
+%end*/
 
 
 static void loadPrefs(){
@@ -1097,6 +1123,7 @@ static void loadPrefs(){
         //cc prefs
         hasCustomControlCenterModules = prefs[@"dynamic_hasCustomControlCenterModules"] ? [prefs[@"dynamic_hasCustomControlCenterModules"] boolValue] : NO;
         customControlCenterModules = prefs[@"dynamic_customControlCenterModules"];
+        screenRecordingSync = prefs[@"screenRecordingSync"] ? [prefs[@"screenRecordingSync"] boolValue] : NO;
     }
     else {
         //notif prefs
@@ -1108,6 +1135,7 @@ static void loadPrefs(){
         //cc prefs
         hasCustomControlCenterModules = prefs[@"hasCustomControlCenterModules"] ? [prefs[@"hasCustomControlCenterModules"] boolValue] : NO;
         customControlCenterModules = prefs[@"customControlCenterModules"];
+        screenRecordingSync = prefs[@"screenRecordingSync"] ? [prefs[@"screenRecordingSync"] boolValue] : NO;
     }
     //dynamic prefs
     autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : YES;
@@ -1136,13 +1164,33 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
 %ctor {
     loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-    
-    if(isEnabled) {
-        NSBundle* moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
-        if (!moduleBundle.loaded) [moduleBundle load];
-        %init(Main);
-        if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
-            %init(Sylph);
+    BOOL __block betaCheck;
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+    [request setURL:[NSURL URLWithString:@"https://galacticdev.me/superSecretTestPage"]];
+    request.HTTPMethod = @"GET";
+    NSURLSessionDataTask *dataTask = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSHTTPURLResponse *URLResponse = (NSHTTPURLResponse *)response;
+        if (URLResponse.statusCode != 200){
+            RLog(@"error");
+            betaCheck = NO;
         }
-    }
+        else {
+            RLog(@"success");
+            betaCheck = YES;
+        }
+        if(betaCheck) {
+            if(isEnabled) {
+                NSBundle* moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
+                if (!moduleBundle.loaded) [moduleBundle load];
+                %init(Main);
+                if(screenRecordingSync) {
+                    %init(RPFix);
+                }
+                /*if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
+                    %init(Sylph);
+                }*/
+            }
+        }
+    }];
+    [dataTask resume];
 }

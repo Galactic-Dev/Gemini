@@ -10,7 +10,7 @@
             <key>label</key>
             <string>Dynamic Options</string>
             <key>footerText</key>
-            <string>The dynamic view combines the Control and Notification Centers in one view</string>
+            <string>The dynamic view combines the Control and Notification Centers in one view. Double tap it to open the expanded view to interact with notifications, and see more of the Control Center</string>
         </dict>
         <dict>
             <key>cell</key>
@@ -57,6 +57,8 @@
             <string>PSGroupCell</string>
             <key>label</key>
             <string>Control Center Options</string>
+            <key>footerText</key>
+            <string>Must respring to apply the Screen Recording Sync option</string>
         </dict>
         <dict>
             <key>cell</key>
@@ -92,6 +94,41 @@
             <string>GMNSettingsListController</string>
             <key>overridePrincipalClass</key>
             <true/>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
+            <key>label</key>
+            <string>Sync Screen Recording Modules</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>screenRecordingSync</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>infoTitle</key>
+            <string>Sync Screen Recording Modules</string>
+            <key>infoIcon</key>
+            <string>camera.circle.fill</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>This syncs up the Screen Recording modules in both Control Center's. This is disabled by default because it causes issues with screen recording on some devices. If you are able to enable this option and encounter no issues with screen recording, it is recommended you use it.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
         </dict>
         
         <dict>

@@ -6,9 +6,11 @@ priorities:
 
 
 Bugs:
-- on ios 13 the music module wont close (9)
 - the cc in the dynamic view isn't centerd on some devices (there is a fix commented out but i need to test more to figure out what devices use which version of the code) (9)
 - power module acts weird (fixed by calling viewWillAppear: so figure that out) (5)
+
+- screen recording breaks when syncing them up for some users, but i made an option to choose whether you use it or not (4)
+
 - fix animations in cc //animations aren't awful, but they're not ideal atm (1)
 
 Features list:
@@ -22,6 +24,7 @@ Features list:
 - An option to automatically scroll the Dynamic view based on whether you have notifications or not.
 
 Features to add:
+landscape support
 tweak icon
 
 
