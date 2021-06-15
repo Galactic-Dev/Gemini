@@ -151,11 +151,11 @@ BOOL dismissingMusicModule;
 }
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
     if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
-        if([[UIDevice currentDevice] isNotched]) {
+        if(@available(iOS 14, *)) {
             %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
         }
         else {
-            %orig(UIEdgeInsetsMake(5,2.5,10,0)); //this centers the cc on on iphone 8 ios 13, need to figure out if this is a notch or ios specific thing.
+            %orig(UIEdgeInsetsMake(5,2.5,10,0));
         }
     }
     else {
@@ -474,7 +474,7 @@ BOOL dismissingMusicModule;
                     //setup the views contained in the dynamic view
                     //notif setup
                     [self setupGeminiStructuredListViewController];
-                    self.geminiStructuredListViewController.view.userInteractionEnabled = NO;
+                    self.geminiStructuredListViewController.masterList.notificationSections[0].sectionListView.userInteractionEnabled = NO;
                     
                     //cc setup
                     [self setupGeminiModuleViewController];
@@ -563,7 +563,6 @@ BOOL dismissingMusicModule;
                     dynamicScrollView.contentSize = CGSizeMake(width * 2, 0);
                     
                     dynamicScrollView.showsHorizontalScrollIndicator = NO;
-                    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:NO];
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this btw it makes things work
                     break;
                 }
@@ -733,8 +732,7 @@ BOOL dismissingMusicModule;
     [self showGeminiBlurView:YES makeTopMostView:NO];
     self.geminiBlurView.alpha = 0.2;
     
-    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:YES];
-    self.geminiStructuredListViewController.view.userInteractionEnabled = YES;
+    self.geminiStructuredListViewController.masterList.notificationSections[0].sectionListView.userInteractionEnabled = YES;
 
     
     //gesture recognizer setup
@@ -757,8 +755,7 @@ BOOL dismissingMusicModule;
 }
 
 %new -(void)dismissExpandedDynamicView {
-    [(UIScrollView *)self.geminiModuleViewController.view setScrollEnabled:NO];
-    self.geminiStructuredListViewController.view.userInteractionEnabled = NO;
+    self.geminiStructuredListViewController.masterList.notificationSections[0].sectionListView.userInteractionEnabled = NO;
 
     [self.geminiAdditionalView layoutIfNeeded];
     [self showGeminiBlurView:NO makeTopMostView:NO];
@@ -880,7 +877,7 @@ BOOL dismissingMusicModule;
             }
         }
         else {
-            if([[mainSwitcherVC valueForKey:@"_mainApplayouts"] count] > 0) {
+            if([[mainSwitcherVC valueForKey:@"_mainAppLayouts"] count] > 0) {
                 [mainSwitcherVC handlePinch:nil];
             }
         }
@@ -1171,11 +1168,9 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
     NSURLSessionDataTask *dataTask = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSHTTPURLResponse *URLResponse = (NSHTTPURLResponse *)response;
         if (URLResponse.statusCode != 200){
-            RLog(@"error");
             betaCheck = NO;
         }
         else {
-            RLog(@"success");
             betaCheck = YES;
         }
         if(betaCheck) {

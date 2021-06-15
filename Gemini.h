@@ -16,6 +16,9 @@
 -(void)addObserver:(id)arg1 selector:(SEL)arg2 name:(id)arg3 object:(id)arg4;
 @end
 
+@interface SBMainSwitcherWindow : UIWindow
+@end
+
 @interface SBAppSwitcherScrollView : UIScrollView
 @end
 

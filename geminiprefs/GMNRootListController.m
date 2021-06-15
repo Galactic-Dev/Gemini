@@ -35,11 +35,11 @@ OBWelcomeController *welcomeController;
 	}
 	self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:enabledSwitch];
 
-	self.headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, 100)];
+	self.headerView = [[UIView alloc] initWithFrame:CGRectMake(-10, 0, [[UIScreen mainScreen] bounds].size.width + 20, 100)];
 
 	UIImage *backgroundImage = [UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/GeminiPrefs.bundle/background.jpg"];
 	UIImageView *backgroundImageView = [[UIImageView alloc] initWithImage:backgroundImage];
-	backgroundImageView.frame = self.headerView.bounds;
+	backgroundImageView.frame = self.headerView.frame;
 	backgroundImageView.contentMode = UIViewContentModeScaleAspectFill;
 		// Set vertical effect
 	UIInterpolatingMotionEffect *verticalMotionEffect =
@@ -49,7 +49,7 @@ OBWelcomeController *welcomeController;
 
 	// Set horizontal effect
 	UIInterpolatingMotionEffect *horizontalMotionEffect =
-	[[UIInterpolatingMotionEffect alloc] initWithKeyPath:@"center.x" type:UIInterpolatingMotionEffectTypeTiltAlongHorizontalAxis];
+	[[UIInterpolatingMotionEffect alloc] initWithKeyPath:@"frame.origin.x" type:UIInterpolatingMotionEffectTypeTiltAlongHorizontalAxis];
 	horizontalMotionEffect.minimumRelativeValue = @(-10);
 	horizontalMotionEffect.maximumRelativeValue = @(10);
 
@@ -62,13 +62,16 @@ OBWelcomeController *welcomeController;
 	[self.headerView addSubview:backgroundImageView];
 
 	UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, self.headerView.frame.size.height / 4, [[UIScreen mainScreen] bounds].size.width, 50)];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.headerView addSubview:label];
+    [label.centerXAnchor constraintEqualToAnchor:self.headerView.centerXAnchor].active = YES;
+    [label.centerYAnchor constraintEqualToAnchor:self.headerView.centerYAnchor].active = YES;
 	label.font = [UIFont boldSystemFontOfSize:40];
 	label.textAlignment = NSTextAlignmentCenter;
 	label.textColor = [UIColor whiteColor];
 	label.numberOfLines = 1;
 	label.text = @"Gemini";
 	self.headerView.clipsToBounds = YES;
-	[self.headerView addSubview:label];
 }
 
 -(void)enabledSwitchChanged:(UISwitch *)enabledSwitch {
