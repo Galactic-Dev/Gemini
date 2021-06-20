@@ -55,6 +55,14 @@ BOOL autoScrollDynamicView;
 %end
 
 %group Main
+%hook PowerUIModuleContentViewController
+-(void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    %orig;
+    RLog(@"dsaf;kjasdf");
+    [self viewWillAppear:NO];
+}
+%end
+
 //fixes volume hud not showing when moduleviewcontroller is presented
 %hook MediaControlsVolumeViewController
 -(BOOL)isOnScreen {
@@ -808,7 +816,14 @@ BOOL dismissingMusicModule;
 %new
 -(void)GMNShowTestNotifications {
     //add notifications for currently opened apps
-    NSArray *mainAppLayouts = [self valueForKey:@"_appLayouts"];
+    NSArray *mainAppLayouts;
+    if(@available(iOS 14, *)) {
+        mainAppLayouts = [self valueForKey:@"_appLayouts"];
+    }
+    else {
+        mainAppLayouts = [self valueForKey:@"_mainAppLayouts"];
+    }
+    
     for(int i = 0; i < [mainAppLayouts count]; i++ ){
         SBAppLayout *appLayout = mainAppLayouts[i];
         SBDisplayItem *displayItem = [[appLayout valueForKey:@"_rolesToLayoutItemsMap"] objectForKey:@1];
@@ -841,8 +856,10 @@ BOOL dismissingMusicModule;
     %orig;
     if (arg1 != 2 && [mainSwitcherVC sbActiveInterfaceOrientation] == 1){ //checks if switcher isn't showing and content orientation is portrait;
         if (mainSwitcherVC.isSmall){
-            mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 115, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
-            mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
+            [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+                mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 115, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
+                mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
+            } completion:nil];
             mainSwitcherVC.isSmall = NO;
             [mainSwitcherVC showGeminiBlurView:NO makeTopMostView:NO];
             mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
@@ -1175,8 +1192,11 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
         }
         if(betaCheck) {
             if(isEnabled) {
-                NSBundle* moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
+                NSBundle *moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
                 if (!moduleBundle.loaded) [moduleBundle load];
+                
+                NSBundle *powerUIBundle = [NSBundle bundleWithPath:@"/Library/ControlCenter/Bundles/PowerModule.bundle"];
+                if(!powerUIBundle.loaded) [powerUIBundle load];
                 %init(Main);
                 if(screenRecordingSync) {
                     %init(RPFix);
