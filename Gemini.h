@@ -60,7 +60,7 @@
 @interface RPControlCenterModule : NSObject
 @end
 
-@interface CCUIModuleCollectionView : UIView
+@interface CCUIModuleCollectionView : UIScrollView
 @property (nonatomic, assign) UIEdgeInsets edgeInsets;
 @end
 

@@ -55,14 +55,6 @@ BOOL autoScrollDynamicView;
 %end
 
 %group Main
-%hook PowerUIModuleContentViewController
--(void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
-    %orig;
-    RLog(@"dsaf;kjasdf");
-    [self viewWillAppear:NO];
-}
-%end
-
 //fixes volume hud not showing when moduleviewcontroller is presented
 %hook MediaControlsVolumeViewController
 -(BOOL)isOnScreen {
@@ -119,6 +111,20 @@ BOOL dismissingMusicModule;
 %end
 
 %hook CCUIModuleCollectionView
+-(CGSize)contentSize {
+    CGSize size = %orig;
+    if(self == mainSwitcherVC.geminiModuleViewController.view && additionalViewSelection == 2) {
+        return CGSizeMake(self.visibleSize.width, size.height);
+    }
+    return size;
+}
+-(void)setContentSize:(CGSize)size {
+    if(self == mainSwitcherVC.geminiModuleViewController.view && additionalViewSelection == 2) {
+        %orig(CGSizeMake(self.visibleSize.width, size.height));
+        return;
+    }
+    %orig;
+}
 -(CGSize)intrinsicContentSize {
     CGSize size = %orig;
     if(self == mainSwitcherVC.geminiModuleViewController.view) {
@@ -143,27 +149,18 @@ BOOL dismissingMusicModule;
     }
     return size;
 }
--(void)addSubview:(UIView *)subview {
-    %orig;
-    if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
-        subview.transform = CGAffineTransformMakeScale(0.95,0.95);
-    }
-}
--(id)layoutSource {
-    if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
-        CCUILayoutOptions *layoutOptions = [self valueForKey:@"_layoutOptions"];
-        [layoutOptions setValue:@5 forKey:@"_itemSpacing"];
-    }
-
-    return %orig;
-}
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
     if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
         if(@available(iOS 14, *)) {
-            %orig(UIEdgeInsetsMake(5,arg1.left/2,10,0));
+            if([[UIDevice currentDevice] isNotched]) {
+                %orig(UIEdgeInsetsMake(3.75,arg1.left/4,0,arg1.right/2));
+            }
+            else {
+                %orig(UIEdgeInsetsMake(3.75,arg1.left/4,0,arg1.right/2));
+            }
         }
         else {
-            %orig(UIEdgeInsetsMake(5,2.5,10,0));
+            %orig(UIEdgeInsetsMake(3.75,arg1.left/2,0,0));
         }
     }
     else {
@@ -496,7 +493,12 @@ BOOL dismissingMusicModule;
                     dynamicContainerView.clipsToBounds = YES;
                     dynamicContainerView.translatesAutoresizingMaskIntoConstraints = NO;
                     [self.view addSubview:dynamicContainerView];
-                    [dynamicContainerView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor constant:-36].active = YES;
+                    if(@available(iOS 14, *)) {
+                        [dynamicContainerView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor constant:-36].active = YES;
+                    }
+                    else {
+                        [dynamicContainerView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor constant:-18].active = YES;
+                    }
                     
                     CGFloat switcherHeight;
                     if(self.view.frame.size.height <= 568) switcherHeight = self.view.frame.size.height * 0.65;
@@ -505,16 +507,16 @@ BOOL dismissingMusicModule;
                     
                     CGFloat height;
                     if([UIDevice.currentDevice isNotched]) {
-                        height = (screenHeight - switcherHeight) + 100;
+                        height = (screenHeight - switcherHeight) + 130;
                     }
                     else {
-                        height = (screenHeight - switcherHeight) + 90;
+                        height = (screenHeight - switcherHeight) + 100;
                     }
                     self.geminiDynamicHeightAnchor = [dynamicContainerView.heightAnchor constraintEqualToConstant:height];
                     self.geminiDynamicHeightAnchor.active = YES;
                     [dynamicContainerView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     if([UIDevice.currentDevice isNotched]) {
-                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-90].active = YES;
+                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
                     }
                     else {
                         if(self.view.frame.size.height <= 568) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
@@ -553,12 +555,12 @@ BOOL dismissingMusicModule;
                     [dynamicStackView.topAnchor constraintEqualToAnchor:dynamicScrollView.topAnchor].active = YES;
                     [dynamicStackView.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:0].active = YES;
                     
-                    [self.geminiModuleViewController.view.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor constant:0].active = YES;
+                    [self.geminiModuleViewController.view.widthAnchor constraintEqualToAnchor:dynamicScrollView.widthAnchor constant:0].active = YES;
                     
                     [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
                     [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor].active = YES;
                     [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:10].active = YES;
-                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:-2.5].active = YES;
+                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:0].active = YES;
 
                     
                     [self.geminiStructuredListViewController.masterListView.topAnchor constraintEqualToAnchor:self.geminiStructuredListViewController.view.topAnchor].active = YES;
@@ -567,8 +569,14 @@ BOOL dismissingMusicModule;
                     self.geminiAdditionalView.clipsToBounds = YES;
                     
                     CGFloat switcherWidth = self.view.frame.size.width;
-                    CGFloat width = switcherWidth - 36;
-                    dynamicScrollView.contentSize = CGSizeMake(width * 2, 0);
+                    if(@available(iOS 14, *)) {
+                        CGFloat width = switcherWidth - 36;
+                        dynamicScrollView.contentSize = CGSizeMake(width * 2, 0);
+                    }
+                    else {
+                        CGFloat width = switcherWidth - 18;
+                        dynamicScrollView.contentSize = CGSizeMake(width * 2, 0);
+                    }
                     
                     dynamicScrollView.showsHorizontalScrollIndicator = NO;
                     [self insertNotificationsForBundleIdentifier:self.currentIdentifier]; //don't delete this btw it makes things work

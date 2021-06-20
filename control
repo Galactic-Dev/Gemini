@@ -1,7 +1,7 @@
 Package: com.galacticdev.gemini
 Name: Gemini
 Depends: mobilesubstrate, com.opa334.ccsupport, preferenceloader
-Version: 1.0~b6
+Version: 1.0~b9
 Architecture: iphoneos-arm
 Description: Utilize your App Switcher like never before!.
 Maintainer: GalacticDev
