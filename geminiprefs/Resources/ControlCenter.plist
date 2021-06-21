@@ -50,6 +50,56 @@
             <key>cell</key>
             <string>PSGroupCell</string>
             <key>footerText</key>
+            <string>Number of rows to show.
+1 row is the height of a 1x1 module.
+On some smaller devices, there might not be enough room for a 4th row to show completely.</string>
+        </dict>
+        <dict>
+            <key>cellClass</key>
+            <string>GMNStepperCell</string>
+            <key>default</key>
+            <real>4</real>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>controlCenterRowNumber</string>
+            <key>label</key>
+            <string>%i Rows</string>
+            <key>max</key>
+            <real>4</real>
+            <key>min</key>
+            <real>1</real>
+            <key>singularLabel</key>
+            <string>1 Row</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>footerText</key>
+            <string></string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>label</key>
+            <string>Scroll Horizontally</string>
+            <key>id</key>
+            <string>controlCenterHorizontalScroll</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>controlCenterHorizontalScroll</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>footerText</key>
             <string>Must respring to apply the Screen Recording Sync option</string>
         </dict>
         <dict>

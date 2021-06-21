@@ -4,6 +4,8 @@ NCNotificationStructuredListViewController *notifVC;
 SBMainSwitcherViewController *mainSwitcherVC;
 long long environmentMode;
 RPControlCenterClient *mainCCRPClient;
+CGFloat kGeminiSwitcherYOffset;
+CGFloat kGeminiTransformMultiplier;
 
 NSTimeInterval lastOffsetCaptured;
 
@@ -27,6 +29,8 @@ BOOL showAllAppNotifications;
 BOOL hasCustomControlCenterModules;
 NSArray *customControlCenterModules;
 BOOL screenRecordingSync;
+NSInteger controlCenterRowNumber;
+BOOL controlCenterHorizontalScroll;
 
 //dynamic prefs
 BOOL autoScrollDynamicView;
@@ -135,6 +139,12 @@ BOOL dismissingMusicModule;
                     mainSwitcherVC.geminiControlCenterHeightAnchor = [self.heightAnchor constraintEqualToConstant:size.height];
                     mainSwitcherVC.geminiControlCenterHeightAnchor.active = YES;
                     [(UIScrollView *)mainSwitcherVC.geminiAdditionalView setContentSize:size];
+                    
+                    if(controlCenterHorizontalScroll) {
+                        mainSwitcherVC.geminiControlCenterWidthAnchor.active = NO;
+                        mainSwitcherVC.geminiControlCenterWidthAnchor = [self.widthAnchor constraintEqualToConstant:size.width];
+                        mainSwitcherVC.geminiControlCenterWidthAnchor.active = YES;
+                    }
                 }
                 break;
             }
@@ -163,13 +173,37 @@ BOOL dismissingMusicModule;
             %orig(UIEdgeInsetsMake(3.75,arg1.left/2,0,0));
         }
     }
+    else if(additionalViewSelection == 0 && mainSwitcherVC.geminiModuleViewController.view == self && controlCenterHorizontalScroll) {
+        %orig(UIEdgeInsetsMake(arg1.top, 0, arg1.bottom, 0));
+    }
     else {
         %orig;
     }
 }
 %end
 
+%hook CCUIControlCenterPositionProvider
+-(struct CCUILayoutSize)layoutSize {
+    struct CCUILayoutSize orig = %orig;
+    CCUIControlCenterPositionProvider *positionProvider = [mainSwitcherVC.geminiModuleViewController valueForKey:@"_landscapePositionProvider"];
+    if(positionProvider == self) {
+        struct CCUILayoutSize layoutSize;
+        layoutSize.width = orig.width;
+        layoutSize.height = controlCenterRowNumber;
+        mainSwitcherVC.geminiModuleViewController.view.clipsToBounds = YES;
+        return layoutSize;
+    }
+    return orig;
+}
+%end
+
 %hook CCUIModuleCollectionViewController
+-(NSInteger)_interfaceOrientation {
+    if(self == mainSwitcherVC.geminiModuleViewController && controlCenterHorizontalScroll && additionalViewSelection == 0) {
+        return 3;
+    }
+    return %orig;
+}
 //adds a blur view to the switcher when presenting an expanded module vc
 -(void)presentViewController:(UIViewController *)viewController animated:(BOOL)animated completion:(id)completion {
     if(self == mainSwitcherVC.geminiModuleViewController) {
@@ -263,6 +297,7 @@ BOOL dismissingMusicModule;
 %property (strong, nonatomic) NSLayoutConstraint *geminiExpandedHeightAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiDynamicHeightAnchor;
 %property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterHeightAnchor;
+%property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterWidthAnchor;
 %property (strong, nonatomic) CCUIModuleInstanceManager *geminiModuleInstanceManager;
 
 -(void)viewDidLoad {
@@ -455,15 +490,59 @@ BOOL dismissingMusicModule;
                         height = (screenHeight - switcherHeight) + 110;
                     }
                     
-                    [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
+                    CGFloat controlCenterTopOffset = 0;
+                    if(controlCenterRowNumber != 4 && !controlCenterHorizontalScroll) {
+                        CCUILayoutOptions *layoutOptions = [self.geminiModuleViewController valueForKey:@"_layoutOptions"];
+                        CGFloat rowHeight = layoutOptions.itemEdgeSize + layoutOptions.itemSpacing;
+                        height = (rowHeight * controlCenterRowNumber) + layoutOptions.itemSpacing;
+                        if(controlCenterRowNumber < 3) {
+                            if([[UIDevice currentDevice] isNotched]) {
+                                kGeminiSwitcherYOffset = rowHeight / 2;
+                                kGeminiTransformMultiplier = 1;
+                                if(controlCenterRowNumber == 2) controlCenterTopOffset = (-1 * height) + (rowHeight / 2);
+                                else controlCenterTopOffset = (-1 * height);
+                            }
+                            else {
+                                kGeminiSwitcherYOffset = rowHeight / 2;
+                                kGeminiTransformMultiplier = 0.75;
+                                if(controlCenterRowNumber == 2) controlCenterTopOffset = (-1 * height) + (rowHeight * 1.5);
+                                else controlCenterTopOffset = (-1 * height);
+                            }
+                        }
+                    }
+                    if(controlCenterHorizontalScroll) {
+                        [scrollView.widthAnchor constraintEqualToConstant:[UIScreen mainScreen].bounds.size.width].active = YES;
+                    }
+                    else {
+                        [scrollView.widthAnchor constraintEqualToConstant:self.geminiModuleViewController.view.frame.size.width].active = YES;
+                    }
                     [scrollView.heightAnchor constraintEqualToConstant:height].active = YES;
                     
                     if([UIDevice.currentDevice isNotched]) {
-                        [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
+                        if(controlCenterTopOffset != 0) {
+                            [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                        }
+                        else {
+                            [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
+                        }
                     }
                     else {
-                        if(self.view.frame.size.height <= 568) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
-                        else [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-60].active = YES;
+                        if(self.view.frame.size.height <= 568) {
+                            if(controlCenterTopOffset != 0) {
+                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                            }
+                            else {
+                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                            }
+                        }
+                        else {
+                            if(controlCenterTopOffset != 0) {
+                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                            }
+                            else {
+                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-60].active = YES;
+                            }
+                        }
                     }
                     
                     [scrollView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
@@ -651,14 +730,19 @@ BOOL dismissingMusicModule;
         self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
         self.geminiAdditionalView.alpha = 1;
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 115, self.view.frame.size.width, self.view.frame.size.height);
+            if(kGeminiSwitcherYOffset <= 0) kGeminiSwitcherYOffset = 115;
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - kGeminiSwitcherYOffset, self.view.frame.size.width, self.view.frame.size.height);
             if(self.view.frame.size.height <= 568) {
-                self.view.transform = CGAffineTransformMakeScale(.65, .65);
-                self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.30,1.30);
+                if(kGeminiTransformMultiplier <= 0) kGeminiTransformMultiplier = 0.65f;
+                self.view.transform = CGAffineTransformMakeScale(kGeminiTransformMultiplier, kGeminiTransformMultiplier);
+                if(kGeminiTransformMultiplier < 1) self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.30,1.30);
+                else self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1,1);
             }
             else {
-                self.view.transform = CGAffineTransformMakeScale(.75, .75);
-                self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+                if(kGeminiTransformMultiplier <= 0) kGeminiTransformMultiplier = 0.75f;
+                self.view.transform = CGAffineTransformMakeScale(kGeminiTransformMultiplier, kGeminiTransformMultiplier);
+                if(kGeminiTransformMultiplier < 1) self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1.25,1.25);
+                else self.geminiAdditionalView.transform = CGAffineTransformMakeScale(1,1);
             }
             return;
         } completion:^(BOOL finished) {
@@ -686,7 +770,7 @@ BOOL dismissingMusicModule;
     }
     else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
         [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 115, self.view.frame.size.width, self.view.frame.size.height);
+            self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + kGeminiSwitcherYOffset, self.view.frame.size.width, self.view.frame.size.height);
             self.view.transform = CGAffineTransformMakeScale(1, 1);
 
             self.geminiAdditionalView.alpha = 0;
@@ -865,7 +949,7 @@ BOOL dismissingMusicModule;
     if (arg1 != 2 && [mainSwitcherVC sbActiveInterfaceOrientation] == 1){ //checks if switcher isn't showing and content orientation is portrait;
         if (mainSwitcherVC.isSmall){
             [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-                mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + 115, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
+                mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + kGeminiSwitcherYOffset, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
                 mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             } completion:nil];
             mainSwitcherVC.isSmall = NO;
@@ -969,6 +1053,16 @@ BOOL dismissingMusicModule;
                 }
             }
         }
+    }
+    return orig;
+}
+%end
+
+%hook SBHomeScreenWindow
+-(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    id orig = %orig;
+    if(mainSwitcherVC.isSmall) {
+        [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
     }
     return orig;
 }
@@ -1158,6 +1252,8 @@ static void loadPrefs(){
         hasCustomControlCenterModules = prefs[@"hasCustomControlCenterModules"] ? [prefs[@"hasCustomControlCenterModules"] boolValue] : NO;
         customControlCenterModules = prefs[@"customControlCenterModules"];
         screenRecordingSync = prefs[@"screenRecordingSync"] ? [prefs[@"screenRecordingSync"] boolValue] : NO;
+        controlCenterRowNumber = prefs[@"controlCenterRowNumber"] ? [prefs[@"controlCenterRowNumber"] intValue] : 4;
+        controlCenterHorizontalScroll = prefs[@"controlCenterHorizontalScroll"] ? [prefs[@"controlCenterHorizontalScroll"] boolValue] : NO;
     }
     //dynamic prefs
     autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : YES;
@@ -1169,6 +1265,8 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
         mainSwitcherVC.geminiModuleViewController = nil;
         mainSwitcherVC.geminiStructuredListViewController = nil;
+        kGeminiSwitcherYOffset = 0;
+        kGeminiTransformMultiplier = 0;
         for(UIViewController *viewController in mainSwitcherVC.childViewControllers.copy) {
             if(viewController.class != %c(SBDeckSwitcherViewController)) {
                 [viewController removeFromParentViewController];

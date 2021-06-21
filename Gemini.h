@@ -41,6 +41,10 @@
 @end
 
 //Control Center Stuff
+struct CCUILayoutSize {
+   NSUInteger width;
+   NSUInteger height;
+};
 @interface PowerUIModuleContentViewController : UIViewController
 @end
 
@@ -60,11 +64,16 @@
 @interface RPControlCenterModule : NSObject
 @end
 
+@interface CCUIControlCenterPositionProvider : NSObject
+@end
+
 @interface CCUIModuleCollectionView : UIScrollView
 @property (nonatomic, assign) UIEdgeInsets edgeInsets;
 @end
 
 @interface CCUILayoutOptions : NSObject
+@property (nonatomic, assign) CGFloat itemEdgeSize;
+@property (nonatomic, assign) CGFloat itemSpacing;
 -(void)setItemEdgeSize:(CGFloat)arg1;
 -(void)setItemSpacing:(CGFloat)arg1;
 @end
@@ -140,6 +149,7 @@
 +(SBMainSwitcherViewController *)sharedInstance;
 @property (nonatomic,readonly) SBDeckSwitcherViewController* contentViewController;
 -(NSInteger)sbActiveInterfaceOrientation;
+-(BOOL)dismissMainSwitcherNoninteractivelyAnimated:(BOOL)animated;
 
 //my custom methods & properties
 @property (strong, nonatomic) CCUIModuleCollectionViewController *geminiModuleViewController;
@@ -162,6 +172,7 @@
 -(void)setupGeminiModuleViewController;
 -(void)setupGeminiStructuredListViewController;
 @property (strong, nonatomic) CCUIModuleInstanceManager *geminiModuleInstanceManager;
+@property (strong, nonatomic) NSLayoutConstraint *geminiControlCenterWidthAnchor;
 @end
 
 @interface AXNView : UIView
