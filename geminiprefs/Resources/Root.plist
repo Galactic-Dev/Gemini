@@ -61,6 +61,22 @@
                 </dict>
             </array>
 		</dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Tap Anywhere To Dismiss</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>key</key>
+            <string>tapAnywhereToDismiss</string>
+        </dict>
 		<dict>
 			<key>PostNotification</key>
 			<string>com.galacticdev.geminiprefs.changed</string>

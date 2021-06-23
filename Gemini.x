@@ -18,6 +18,7 @@ BOOL isScrollingFast;
 BOOL isEnabled;
 NSInteger additionalViewSelection;
 BOOL automaticallyPinchSwitcher;
+BOOL tapAnywhereToDismiss;
 
 //notif prefs
 BOOL showNoOlderNotifications;
@@ -54,6 +55,20 @@ BOOL autoScrollDynamicView;
         [self setValue:mainCCRPClient forKey:@"_client"];
     }
     return orig;
+}
+%end
+%end
+
+%group Prysm
+@interface UIView (Custom)
+-(NSMutableArray *)getSubviewsOfView:(UIView *)view ;
+@end
+%hook PrysmMainPageViewController
+-(void)setRevealProgress:(double)arg2 isPresented:(bool)arg3 {
+    %orig;
+    for(UIViewController *viewController in mainSwitcherVC.geminiModuleViewController.childViewControllers) {
+        viewController.view.alpha = 1;
+    }
 }
 %end
 %end
@@ -550,6 +565,7 @@ BOOL dismissingMusicModule;
                     [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:scrollView.topAnchor].active = YES;
                     
                     self.geminiAdditionalView = scrollView;
+                    scrollView.showsHorizontalScrollIndicator = NO;
                     break;
                 }
                 case 2: {
@@ -1058,15 +1074,6 @@ BOOL dismissingMusicModule;
 }
 %end
 
-%hook SBHomeScreenWindow
--(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    id orig = %orig;
-    if(mainSwitcherVC.isSmall) {
-        [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
-    }
-    return orig;
-}
-%end
 
 %hook SBAppSwitcherScrollView
 -(void)setContentOffset:(CGPoint)currentOffset{
@@ -1161,6 +1168,17 @@ BOOL dismissingMusicModule;
 %end
 %end
 
+%group TapAnywhereDismiss
+%hook SBMainSwitcherWindow
+-(id)_hitTest:(CGPoint)arg1 withEvent:(id)arg2 windowServerHitTestWindow:(id)arg3 {
+    if([arg3 isKindOfClass:%c(SBHomeScreenWindow)]) {
+        [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
+    }
+    return %orig;
+}
+%end
+%end
+
 
 /*
 %group Sylph
@@ -1229,6 +1247,8 @@ static void loadPrefs(){
     additionalViewSelection = prefs[@"additionalViewSelection"] ? [prefs[@"additionalViewSelection"] intValue] : 0;
     
     automaticallyPinchSwitcher = prefs[@"automaticallyPinchSwitcher"] ? [prefs[@"automaticallyPinchSwitcher"] boolValue] : NO;
+    tapAnywhereToDismiss = prefs[@"tapAnywhereToDismiss"] ? [prefs[@"tapAnywhereToDismiss"] boolValue] : NO;
+    
     if(additionalViewSelection == 2) {
         //notif prefs
         showNoOlderNotifications  = prefs[@"dynamic_showNoOlderNotifications"] ? [prefs[@"dynamic_showNoOlderNotifications"] boolValue] : NO;
@@ -1260,8 +1280,11 @@ static void loadPrefs(){
 }
 
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    BOOL tapAnywhereToDismissPrevious = tapAnywhereToDismiss;
     loadPrefs();
-    
+    if(!tapAnywhereToDismissPrevious && tapAnywhereToDismiss) {
+        %init(TapAnywhereDismiss);
+    }
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
         mainSwitcherVC.geminiModuleViewController = nil;
         mainSwitcherVC.geminiStructuredListViewController = nil;
@@ -1284,7 +1307,7 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
 %ctor {
     loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-    BOOL __block betaCheck;
+    /*BOOL __block betaCheck;
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setURL:[NSURL URLWithString:@"https://galacticdev.me/superSecretTestPage"]];
     request.HTTPMethod = @"GET";
@@ -1307,11 +1330,31 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
                 if(screenRecordingSync) {
                     %init(RPFix);
                 }
+                if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Prysm.dylib", RTLD_LAZY)){
+                    %init(Prysm);
+                }
                 /*if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
                     %init(Sylph);
-                }*/
+                }
             }
         }
     }];
-    [dataTask resume];
+    [dataTask resume];*/
+    if(isEnabled) {
+        NSBundle *moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
+        if (!moduleBundle.loaded) [moduleBundle load];
+        
+        NSBundle *powerUIBundle = [NSBundle bundleWithPath:@"/Library/ControlCenter/Bundles/PowerModule.bundle"];
+        if(!powerUIBundle.loaded) [powerUIBundle load];
+        %init(Main);
+        if(screenRecordingSync) {
+            %init(RPFix);
+        }
+        if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Prysm.dylib", RTLD_LAZY)){
+            %init(Prysm);
+        }
+        /*if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
+            %init(Sylph);
+        }*/
+    }
 }
