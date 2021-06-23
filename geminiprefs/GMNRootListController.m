@@ -100,7 +100,7 @@ OBWelcomeController *welcomeController;
 -(void)setupWelcomeController {
 	welcomeController = [[OBWelcomeController alloc] initWithTitle:@"Gemini" detailText:@"Utilize your App Switcher like never before!" icon:[UIImage systemImageNamed:@"sparkles"]];
 
-	[welcomeController addBulletedListItemWithTitle:@"Control Center" description:@"Bring the Control Center into you App Switcher in a premium fashion, and the option to choose whatever modules you want." image:[UIImage systemImageNamed:@"rectangle.3.offgrid.fill"]];
+	[welcomeController addBulletedListItemWithTitle:@"Control Center" description:@"Bring the Control Center into your App Switcher in a premium fashion, and the option to choose whatever modules you want." image:[UIImage systemImageNamed:@"rectangle.3.offgrid.fill"]];
 	[welcomeController addBulletedListItemWithTitle:@"Notification Center" description:@"Show your app's notifications right in the App Switcher, with sorting so you only see notifications for the app you're hovering over in the switcher." image:[UIImage systemImageNamed:@"app.badge"]];
 	[welcomeController addBulletedListItemWithTitle:@"Dynamic" description:@"Combine both Control and Notification Centers in one dynamic view with the option to intelligently switch between views." image:[UIImage systemImageNamed:@"square.stack.3d.down.right.fill"]];
 
@@ -112,7 +112,7 @@ OBWelcomeController *welcomeController;
 	[continueButton.layer setCornerRadius:15];
 	[welcomeController.buttonTray addButton:continueButton];
 
-	[welcomeController.buttonTray addCaptionText:@"Thank you for purchasing Gemini"];
+	[welcomeController.buttonTray addCaptionText:@"Thank you for purchasing Gemini ✨"];
 
 	welcomeController.modalPresentationStyle = UIModalPresentationPageSheet;
 	welcomeController.modalInPresentation = YES;

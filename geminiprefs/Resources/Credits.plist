@@ -20,18 +20,6 @@
             <key>cellClass</key>
             <string>GMNCreditsCell</string>
             <key>label</key>
-            <string>PayPal</string>
-            <key>detailLabel</key>
-            <string>Donations are appreciated</string>
-            <key>link</key>
-            <string>https://www.paypal.com/paypalme/DBrett684</string>
-        </dict>
-        <dict>
-            <key>cell</key>
-            <string>PSButtonCell</string>
-            <key>cellClass</key>
-            <string>GMNCreditsCell</string>
-            <key>label</key>
             <string>Twitter</string>
             <key>detailLabel</key>
             <string>For updates and support</string>
@@ -39,6 +27,18 @@
             <string>twitter://user?screen_name=dev_galactic</string>
             <key>isTwitter</key>
             <true/>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>cellClass</key>
+            <string>GMNCreditsCell</string>
+            <key>label</key>
+            <string>Discord</string>
+            <key>detailLabel</key>
+            <string>For support</string>
+            <key>link</key>
+            <string>https://discord.gg/EACxr6rGvZ</string>
         </dict>
         <dict>
             <key>cell</key>
@@ -54,6 +54,18 @@
         </dict>
         <dict>
             <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>cellClass</key>
+            <string>GMNCreditsCell</string>
+            <key>label</key>
+            <string>PayPal</string>
+            <key>detailLabel</key>
+            <string>Donations are appreciated</string>
+            <key>link</key>
+            <string>https://www.paypal.com/paypalme/DBrett684</string>
+        </dict>
+        <dict>
+            <key>cell</key>
             <string>PSGroupCell</string>
             <key>enabled</key>
             <true/>
@@ -61,6 +73,20 @@
             <string></string>
             <key>label</key>
             <string>Credits</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>cellClass</key>
+            <string>GMNCreditsCell</string>
+            <key>label</key>
+            <string>Hallie</string>
+            <key>detailLabel</key>
+            <string>Tweak icon</string>
+            <key>link</key>
+            <string>twitter://user?screen_name=h4l1ie</string>
+            <key>isTwitter</key>
+            <true/>
         </dict>
         <dict>
             <key>cell</key>
