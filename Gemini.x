@@ -6,6 +6,7 @@ long long environmentMode;
 RPControlCenterClient *mainCCRPClient;
 CGFloat kGeminiSwitcherYOffset;
 CGFloat kGeminiTransformMultiplier;
+BOOL hasInitedTapAnywhereToDismiss = NO;
 
 NSTimeInterval lastOffsetCaptured;
 
@@ -392,7 +393,7 @@ BOOL dismissingMusicModule;
     }
 
     for(int i = 0; i < requests.count; i++) {
-        if(!showAllAppNotifications) [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:requests[i]];
+        if(!showAllAppNotifications && ![self.contentViewController isKindOfClass:%c(SBGridSwitcherViewController)]) [self.geminiStructuredListViewController.masterList.notificationSections[0] removeNotificationRequest:requests[i]];
         NSString *sectionIdentifier = requests[i].sectionIdentifier;
         if([self.notificationRequests.allKeys containsObject:sectionIdentifier]) {
             NSMutableArray *requestsForID = self.notificationRequests[sectionIdentifier];
@@ -402,7 +403,7 @@ BOOL dismissingMusicModule;
             [self.notificationRequests setValue:@[requests[i]].mutableCopy forKey:sectionIdentifier];
         }
         if(identifier) {
-            if([sectionIdentifier isEqualToString:identifier] || showAllAppNotifications) {
+            if([sectionIdentifier isEqualToString:identifier] || showAllAppNotifications || [self.contentViewController isKindOfClass:%c(SBGridSwitcherViewController)]) {
                 [self.geminiStructuredListViewController.masterList.notificationSections[0] insertNotificationRequest:requests[i]];
             }
         }
@@ -437,7 +438,9 @@ BOOL dismissingMusicModule;
 -(void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
     if(pinchGesture.scale <= 0.75 && !self.isSmall && [self sbActiveInterfaceOrientation] == 1 && environmentMode == 2) {
         mainSwitcherVC.isSmall = YES;
-        self.contentViewController.appSuggestionController.view.hidden = YES;
+        if(![self.contentViewController isKindOfClass:%c(SBGridSwitcherViewController)]) {
+            self.contentViewController.appSuggestionController.view.hidden = YES;
+        }
 
         self.notificationRequests = [NSMutableDictionary dictionary];
         if(self.childViewControllers.count < 2) {
@@ -813,7 +816,9 @@ BOOL dismissingMusicModule;
         }];
         self.isSmall = NO;
         [self showGeminiBlurView:NO makeTopMostView:NO];
-        self.contentViewController.appSuggestionController.view.hidden = NO;
+        if(![self.contentViewController isKindOfClass:%c(SBGridSwitcherViewController)]) {
+            self.contentViewController.appSuggestionController.view.hidden = NO;
+        }
         self.currentIdentifier = nil;
     }
 }
@@ -970,7 +975,9 @@ BOOL dismissingMusicModule;
             } completion:nil];
             mainSwitcherVC.isSmall = NO;
             [mainSwitcherVC showGeminiBlurView:NO makeTopMostView:NO];
-            mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
+            if(![mainSwitcherVC.contentViewController isKindOfClass:%c(SBGridSwitcherViewController)]) {
+                mainSwitcherVC.contentViewController.appSuggestionController.view.hidden = NO;
+            }
             mainSwitcherVC.currentIdentifier = nil;
             switch(additionalViewSelection) {
                 case 1:
@@ -1171,8 +1178,10 @@ BOOL dismissingMusicModule;
 %group TapAnywhereDismiss
 %hook SBMainSwitcherWindow
 -(id)_hitTest:(CGPoint)arg1 withEvent:(id)arg2 windowServerHitTestWindow:(id)arg3 {
-    if([arg3 isKindOfClass:%c(SBHomeScreenWindow)]) {
-        [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
+    if(tapAnywhereToDismiss) {
+        if([arg3 isKindOfClass:%c(SBHomeScreenWindow)]) {
+            [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
+        }
     }
     return %orig;
 }
@@ -1279,11 +1288,16 @@ static void loadPrefs(){
     autoScrollDynamicView  = prefs[@"autoScrollDynamicView"] ? [prefs[@"autoScrollDynamicView"] boolValue] : YES;
 }
 
+static void loadTapAnywhereToDismissGroup() {
+    hasInitedTapAnywhereToDismiss = YES;
+    %init(TapAnywhereDismiss);
+}
+
 static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     BOOL tapAnywhereToDismissPrevious = tapAnywhereToDismiss;
     loadPrefs();
-    if(!tapAnywhereToDismissPrevious && tapAnywhereToDismiss) {
-        %init(TapAnywhereDismiss);
+    if(!tapAnywhereToDismissPrevious && tapAnywhereToDismiss && !hasInitedTapAnywhereToDismiss) {
+        loadTapAnywhereToDismissGroup();
     }
     if(mainSwitcherVC.childViewControllers.count > 1) { //removes the geminiAdditionalView and its viewcontroller so that if that setting was changed, it will immeditately apply w/o a respring
         mainSwitcherVC.geminiModuleViewController = nil;
@@ -1307,39 +1321,6 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
 %ctor {
     loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)prefsChanged, CFSTR("com.galacticdev.geminiprefs.changed"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-    /*BOOL __block betaCheck;
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setURL:[NSURL URLWithString:@"https://galacticdev.me/superSecretTestPage"]];
-    request.HTTPMethod = @"GET";
-    NSURLSessionDataTask *dataTask = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        NSHTTPURLResponse *URLResponse = (NSHTTPURLResponse *)response;
-        if (URLResponse.statusCode != 200){
-            betaCheck = NO;
-        }
-        else {
-            betaCheck = YES;
-        }
-        if(betaCheck) {
-            if(isEnabled) {
-                NSBundle *moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
-                if (!moduleBundle.loaded) [moduleBundle load];
-                
-                NSBundle *powerUIBundle = [NSBundle bundleWithPath:@"/Library/ControlCenter/Bundles/PowerModule.bundle"];
-                if(!powerUIBundle.loaded) [powerUIBundle load];
-                %init(Main);
-                if(screenRecordingSync) {
-                    %init(RPFix);
-                }
-                if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Prysm.dylib", RTLD_LAZY)){
-                    %init(Prysm);
-                }
-                /*if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
-                    %init(Sylph);
-                }
-            }
-        }
-    }];
-    [dataTask resume];*/
     if(isEnabled) {
         NSBundle *moduleBundle = [NSBundle bundleWithPath:@"/System/Library/ControlCenter/Bundles/ReplayKitModule.bundle"];
         if (!moduleBundle.loaded) [moduleBundle load];
@@ -1352,6 +1333,9 @@ static void prefsChanged(CFNotificationCenterRef center, void *observer, CFStrin
         }
         if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Prysm.dylib", RTLD_LAZY)){
             %init(Prysm);
+        }
+        if(tapAnywhereToDismiss) {
+            loadTapAnywhereToDismissGroup();
         }
         /*if(dlopen("/Library/MobileSubstrate/DynamicLibraries/Sylph.dylib", RTLD_LAZY)) {
             %init(Sylph);
