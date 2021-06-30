@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>items</key>
+    <array>
+        <!--<dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>footerText</key>
+            <string>Choose if Gemini's view should be shown above or below the App Switcher</string>
+        </dict>
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSegmentCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>validTitles</key>
+            <array>
+                <string>Below</string>
+                <string>Above</string>
+            </array>
+            <key>validValues</key>
+            <array>
+                <string>0</string>
+                <string>1</string>
+            </array>
+            <key>key</key>
+            <string>additionalViewAlignment</string>
+            <key>default</key>
+            <string>0</string>
+        </dict>-->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSliderCell</string>
+            <key>cellClass</key>
+            <string>GMNLabeledSliderCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>animationSpeed</string>
+            <key>default</key>
+            <string>0.5</string>
+            <key>min</key>
+            <string>0</string>
+            <key>max</key>
+            <string>0.5</string>
+            <key>isSegmented</key>
+            <false/>
+            <key>label</key>
+            <string>Animation Speed</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>footerText</key>
+            <string>Changes the Y offset of Gemini's custom view</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSliderCell</string>
+            <key>cellClass</key>
+            <string>GMNLabeledSliderCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>customYOffset</string>
+            <key>default</key>
+            <string>0</string>
+            <key>min</key>
+            <string>-200</string>
+            <key>max</key>
+            <string>200</string>
+            <key>isSegmented</key>
+            <false/>
+            <key>label</key>
+            <string>Custom Y Offset</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSliderCell</string>
+            <key>cellClass</key>
+            <string>GMNLabeledSliderCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>key</key>
+            <string>customSwitcherOffset</string>
+            <key>default</key>
+            <string>0</string>
+            <key>min</key>
+            <string>-100</string>
+            <key>max</key>
+            <string>100</string>
+            <key>isSegmented</key>
+            <false/>
+            <key>label</key>
+            <string>Custom Switcher Offset</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+    </array>
+    <key>title</key>
+    <string>More Options</string>
+</dict>
+</plist>

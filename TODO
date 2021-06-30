@@ -7,7 +7,6 @@ priorities:
 
 Bugs:
 - non-notched devices have issue with auto-pinch, not apparent on ios 13 for me.
-- power module acts weird (fixed by calling viewWillAppear: so figure that out) (5)
 
 - screen recording breaks when syncing them up for some users, but i made an option to choose whether you use it or not (4)
 
@@ -27,7 +26,24 @@ Features to add:
 For Next Update:
 - Shuffle bug
 - Issues with tapping on app card.
-
+- power module acts weird, same with orion's power module ✅
+- make dynamic view scroll vertically so notifications can be messed with, not entirely sure how i would implement this
+- dynamic mode overlaps a bit on some devices ✅
+- bigsurcenter support
+- better prysm support
+- quick action buttons in switcher
+- option to change animation speed ✅
+- grid or linear switcher option
+- fix spacing issues w/ horizontal view ✅
+- custom y offset for additional view ✅
+- swipe up from left/right/center to access different additional view selections
+- make additional view go above switcher instead of below
+- tap to switcher passes touches all the way through to hs ✅
+- ccsupport home controls support *
+- fix dynamic view centering on some devices *
+- tap anywhere to dismiss crash *
+   https://pastebin.com/W8x2HqDs - tweak list 1
+- "if its set to notifications and there are no notifications, have it go to normal size only show the pinched view if there are notifs, this is with auto pinch on"
 
 
 landscape support

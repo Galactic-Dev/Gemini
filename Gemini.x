@@ -20,6 +20,10 @@ BOOL isEnabled;
 NSInteger additionalViewSelection;
 BOOL automaticallyPinchSwitcher;
 BOOL tapAnywhereToDismiss;
+NSInteger additionalViewAlignment;
+CGFloat animationSpeed;
+CGFloat customYOffset;
+CGFloat customSwitcherOffset;
 
 //notif prefs
 BOOL showNoOlderNotifications;
@@ -130,6 +134,25 @@ BOOL dismissingMusicModule;
 }
 %end
 
+%hook CCUIContentModuleContainerViewController
+-(BOOL)isExpanded {
+    BOOL expanded = %orig;
+    if(!expanded) {
+        for(UIViewController *childViewController in mainSwitcherVC.geminiModuleViewController.childViewControllers) {
+            if(childViewController.childViewControllers.count > 0) {
+                UIViewController *childChildViewController = childViewController.childViewControllers[0];
+                [childChildViewController viewWillAppear:NO];
+                
+                if([childChildViewController respondsToSelector:@selector(setState:)]) { //fixes music player being a weird size when dismissed
+                    [childChildViewController performSelector:@selector(setState:) withObject:nil]; //ew this is gross but whatever ill get a better way eventually
+                }
+            }
+        }
+    }
+    return expanded;
+}
+%end
+
 %hook CCUIModuleCollectionView
 -(CGSize)contentSize {
     CGSize size = %orig;
@@ -177,17 +200,7 @@ BOOL dismissingMusicModule;
 }
 -(void)setEdgeInsets:(UIEdgeInsets)arg1 {
     if(additionalViewSelection == 2 && mainSwitcherVC.geminiModuleViewController.view == self) {
-        if(@available(iOS 14, *)) {
-            if([[UIDevice currentDevice] isNotched]) {
-                %orig(UIEdgeInsetsMake(3.75,arg1.left/4,0,arg1.right/2));
-            }
-            else {
-                %orig(UIEdgeInsetsMake(3.75,arg1.left/4,0,arg1.right/2));
-            }
-        }
-        else {
-            %orig(UIEdgeInsetsMake(3.75,arg1.left/2,0,0));
-        }
+        %orig(UIEdgeInsetsMake(0,0,0,0));
     }
     else if(additionalViewSelection == 0 && mainSwitcherVC.geminiModuleViewController.view == self && controlCenterHorizontalScroll) {
         %orig(UIEdgeInsetsMake(arg1.top, 0, arg1.bottom, 0));
@@ -461,11 +474,19 @@ BOOL dismissingMusicModule;
                     CGFloat height = (screenHeight - switcherHeight) + 130;
                     
                     if([UIDevice.currentDevice isNotched]) {
-                        [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-85].active = YES;
+                        if(additionalViewAlignment == 0) [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-85 + customYOffset)].active = YES;
+                        //else [self.geminiStructuredListViewController.view.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(85 + customYOffset)].active = YES;
                     }
                     else {
-                        if(self.view.frame.size.height <= 568) [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
-                        else [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        if(self.view.frame.size.height <= 568) {
+                            if(additionalViewAlignment == 0) [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-30 + customYOffset)].active = YES;
+                            //else [self.geminiStructuredListViewController.view.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(30 + customYOffset)].active = YES;
+                        }
+                        else {
+                            if(additionalViewAlignment == 0) [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-50 + customYOffset)].active = YES;
+                            //else [self.geminiStructuredListViewController.view.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(50 + customYOffset)].active = YES;
+
+                        }
                     }
                     
                     [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToConstant:height].active = YES;
@@ -516,12 +537,14 @@ BOOL dismissingMusicModule;
                         if(controlCenterRowNumber < 3) {
                             if([[UIDevice currentDevice] isNotched]) {
                                 kGeminiSwitcherYOffset = rowHeight / 2;
+                                kGeminiSwitcherYOffset += customSwitcherOffset;
                                 kGeminiTransformMultiplier = 1;
                                 if(controlCenterRowNumber == 2) controlCenterTopOffset = (-1 * height) + (rowHeight / 2);
                                 else controlCenterTopOffset = (-1 * height);
                             }
                             else {
                                 kGeminiSwitcherYOffset = rowHeight / 2;
+                                kGeminiSwitcherYOffset += customSwitcherOffset;
                                 kGeminiTransformMultiplier = 0.75;
                                 if(controlCenterRowNumber == 2) controlCenterTopOffset = (-1 * height) + (rowHeight * 1.5);
                                 else controlCenterTopOffset = (-1 * height);
@@ -538,27 +561,33 @@ BOOL dismissingMusicModule;
                     
                     if([UIDevice.currentDevice isNotched]) {
                         if(controlCenterTopOffset != 0) {
-                            [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                            if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(controlCenterTopOffset + customYOffset)].active = YES;
+                            //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:((controlCenterTopOffset * -1) + customYOffset)].active = YES;
                         }
                         else {
-                            [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-105].active = YES;
+                            if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-105 + customYOffset)].active = YES;
+                            //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(90 + customYOffset)].active = YES;
                         }
                     }
                     else {
                         if(self.view.frame.size.height <= 568) {
                             if(controlCenterTopOffset != 0) {
-                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                                if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(controlCenterTopOffset + customYOffset)].active = YES;
+                                //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:((-1 * controlCenterTopOffset) + customYOffset)].active = YES;
                             }
                             else {
-                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
+                                if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-30 + customYOffset)].active = YES;
+                                //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(30 + customYOffset)].active = YES;
                             }
                         }
                         else {
                             if(controlCenterTopOffset != 0) {
-                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:controlCenterTopOffset].active = YES;
+                                if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(controlCenterTopOffset + customYOffset)].active = YES;
+                                //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:((-1 * controlCenterTopOffset) + customYOffset)].active = YES;
                             }
                             else {
-                                [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-60].active = YES;
+                                if(additionalViewAlignment == 0) [scrollView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-60 + customYOffset)].active = YES;
+                                //else [scrollView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(60 + customYOffset)].active = YES;
                             }
                         }
                     }
@@ -614,11 +643,18 @@ BOOL dismissingMusicModule;
                     self.geminiDynamicHeightAnchor.active = YES;
                     [dynamicContainerView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
                     if([UIDevice.currentDevice isNotched]) {
-                        [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-100].active = YES;
+                        if(additionalViewAlignment == 0) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-100 + customYOffset)].active = YES;
+                        //else [dynamicContainerView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(100 + customYOffset)].active = YES;
                     }
                     else {
-                        if(self.view.frame.size.height <= 568) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30].active = YES;
-                        else [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50].active = YES;
+                        if(self.view.frame.size.height <= 568) {
+                            if(additionalViewAlignment == 0) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-30 + customYOffset)].active = YES;
+                            //else [dynamicContainerView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(30 + customYOffset)].active = YES;
+                        }
+                        else {
+                            if(additionalViewAlignment == 0) [dynamicContainerView.topAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:(-50 + customYOffset)].active = YES;
+                            //else [dynamicContainerView.bottomAnchor constraintEqualToAnchor:self.view.topAnchor constant:(50 + customYOffset)].active = YES;
+                        }
                     }
                     self.geminiAdditionalView = dynamicContainerView;
                     
@@ -652,14 +688,30 @@ BOOL dismissingMusicModule;
                     [dynamicStackView.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
                     [dynamicStackView.topAnchor constraintEqualToAnchor:dynamicScrollView.topAnchor].active = YES;
                     [dynamicStackView.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:0].active = YES;
-                    
-                    [self.geminiModuleViewController.view.widthAnchor constraintEqualToAnchor:dynamicScrollView.widthAnchor constant:0].active = YES;
-                    
+                                       
                     [self.geminiStructuredListViewController.view.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
                     [self.geminiStructuredListViewController.view.widthAnchor constraintEqualToAnchor:dynamicContainerView.widthAnchor].active = YES;
                     [self.geminiStructuredListViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:10].active = YES;
-                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:0].active = YES;
 
+                    
+                    [self.geminiModuleViewController.view sizeToFit];
+                    [self.geminiModuleViewController.view.topAnchor constraintEqualToAnchor:dynamicContainerView.topAnchor constant:2.5].active = YES;
+                    if(@available(iOS 14, *)) {
+                        [self.geminiModuleViewController.view.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:18].active = YES;
+                    }
+                    else {
+                        [self.geminiModuleViewController.view.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:9].active = YES;
+                    }
+                    
+                    CGFloat appSwitcherWidth = self.view.frame.size.width;
+                    CGFloat width;
+                    if(@available(iOS 14, *)) {
+                        width = appSwitcherWidth - 36;
+                    }
+                    else {
+                        width = appSwitcherWidth - 18;
+                    }
+                    [self.geminiStructuredListViewController.view.leadingAnchor constraintEqualToAnchor:dynamicScrollView.leadingAnchor constant:width].active = YES;
                     
                     [self.geminiStructuredListViewController.masterListView.topAnchor constraintEqualToAnchor:self.geminiStructuredListViewController.view.topAnchor].active = YES;
                     [self.geminiStructuredListViewController.masterListView.heightAnchor constraintEqualToAnchor:dynamicContainerView.heightAnchor].active = YES;
@@ -748,8 +800,16 @@ BOOL dismissingMusicModule;
 
         self.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
         self.geminiAdditionalView.alpha = 1;
-        [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
-            if(kGeminiSwitcherYOffset <= 0) kGeminiSwitcherYOffset = 115;
+        [UIView animateWithDuration:animationSpeed delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            if(kGeminiSwitcherYOffset <= 0) {
+                kGeminiSwitcherYOffset = 115;
+                kGeminiSwitcherYOffset += customSwitcherOffset;
+            }
+            if(additionalViewAlignment == 1) {
+                kGeminiSwitcherYOffset = kGeminiSwitcherYOffset * -1;
+                kGeminiSwitcherYOffset -= 50;
+            }
+
             self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - kGeminiSwitcherYOffset, self.view.frame.size.width, self.view.frame.size.height);
             if(self.view.frame.size.height <= 568) {
                 if(kGeminiTransformMultiplier <= 0) kGeminiTransformMultiplier = 0.65f;
@@ -788,7 +848,7 @@ BOOL dismissingMusicModule;
         
     }
     else if(pinchGesture.scale >= 1.0 && mainSwitcherVC.isSmall && [self sbActiveInterfaceOrientation] == 1) {
-        [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+        [UIView animateWithDuration:animationSpeed delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
             self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + kGeminiSwitcherYOffset, self.view.frame.size.width, self.view.frame.size.height);
             self.view.transform = CGAffineTransformMakeScale(1, 1);
 
@@ -969,7 +1029,8 @@ BOOL dismissingMusicModule;
     %orig;
     if (arg1 != 2 && [mainSwitcherVC sbActiveInterfaceOrientation] == 1){ //checks if switcher isn't showing and content orientation is portrait;
         if (mainSwitcherVC.isSmall){
-            [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+            [UIView animateWithDuration:animationSpeed delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(void) {
+
                 mainSwitcherVC.view.frame = CGRectMake(mainSwitcherVC.view.frame.origin.x, mainSwitcherVC.view.frame.origin.y + kGeminiSwitcherYOffset, mainSwitcherVC.view.frame.size.width, mainSwitcherVC.view.frame.size.height);
                 mainSwitcherVC.view.transform = CGAffineTransformMakeScale(1, 1);
             } completion:nil];
@@ -1181,6 +1242,7 @@ BOOL dismissingMusicModule;
     if(tapAnywhereToDismiss) {
         if([arg3 isKindOfClass:%c(SBHomeScreenWindow)]) {
             [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
+            return self;
         }
     }
     return %orig;
@@ -1257,6 +1319,11 @@ static void loadPrefs(){
     
     automaticallyPinchSwitcher = prefs[@"automaticallyPinchSwitcher"] ? [prefs[@"automaticallyPinchSwitcher"] boolValue] : NO;
     tapAnywhereToDismiss = prefs[@"tapAnywhereToDismiss"] ? [prefs[@"tapAnywhereToDismiss"] boolValue] : NO;
+    additionalViewAlignment = prefs[@"additionalViewAlignment"] ? [prefs[@"additionalViewAlignment"] intValue] : 0;
+    animationSpeed = prefs[@"animationSpeed"] ? [prefs[@"animationSpeed"] floatValue] : 0.5f;
+    if(animationSpeed == 0) animationSpeed = 0.01f;
+    customYOffset = prefs[@"customYOffset"] ? [prefs[@"customYOffset"] floatValue] : 0.0f;
+    customSwitcherOffset = prefs[@"customSwitcherOffset"] ? [prefs[@"customSwitcherOffset"] floatValue] : 0.0f;
     
     if(additionalViewSelection == 2) {
         //notif prefs

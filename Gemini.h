@@ -150,6 +150,7 @@ struct CCUILayoutSize {
 @property (nonatomic,readonly) SBDeckSwitcherViewController* contentViewController;
 -(NSInteger)sbActiveInterfaceOrientation;
 -(BOOL)dismissMainSwitcherNoninteractivelyAnimated:(BOOL)animated;
+-(BOOL)_dismissSwitcherNoninteractivelyToAppLayout:(id)arg1 dismissFloatingSwitcher:(BOOL)arg2 animated:(BOOL)arg3;
 
 //my custom methods & properties
 @property (strong, nonatomic) CCUIModuleCollectionViewController *geminiModuleViewController;
