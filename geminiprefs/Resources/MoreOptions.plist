@@ -4,7 +4,7 @@
 <dict>
     <key>items</key>
     <array>
-        <!--<dict>
+        <dict>
             <key>cell</key>
             <string>PSGroupCell</string>
             <key>footerText</key>
@@ -31,7 +31,7 @@
             <string>additionalViewAlignment</string>
             <key>default</key>
             <string>0</string>
-        </dict>-->
+        </dict>
         <dict>
             <key>cell</key>
             <string>PSGroupCell</string>
@@ -111,6 +111,26 @@
             <string>Custom Switcher Offset</string>
             <key>PostNotification</key>
             <string>com.galacticdev.geminiprefs.changed</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Clip Bounds of Switcher</string>
+            <key>default</key>
+            <true/>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>key</key>
+            <string>clipSwitcherBounds</string>
         </dict>
     </array>
     <key>title</key>

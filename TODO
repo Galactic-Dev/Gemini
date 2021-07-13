@@ -26,47 +26,29 @@ Features to add:
 For Next Update:
 - Shuffle bug
 - Issues with tapping on app card.
-- power module acts weird, same with orion's power module ✅
+
 - make dynamic view scroll vertically so notifications can be messed with, not entirely sure how i would implement this
-- dynamic mode overlaps a bit on some devices ✅
 - bigsurcenter support
 - better prysm support
 - quick action buttons in switcher
-- option to change animation speed ✅
 - grid or linear switcher option
-- fix spacing issues w/ horizontal view ✅
-- custom y offset for additional view ✅
 - swipe up from left/right/center to access different additional view selections
-- make additional view go above switcher instead of below
-- tap to switcher passes touches all the way through to hs ✅
-- ccsupport home controls support *
+- make additional view go above switcher instead of below ✅
+- ccsupport home controls support *(kind of fixed now only disappears in gemini's cc)
 - fix dynamic view centering on some devices *
 - tap anywhere to dismiss crash *
    https://pastebin.com/W8x2HqDs - tweak list 1
 - "if its set to notifications and there are no notifications, have it go to normal size only show the pinched view if there are notifs, this is with auto pinch on"
+- clips switcher to bounds ✅
+-- make this a toggle? ^✅
+
+
+- whole new feature set to customize the control center, not just the app switcher.
+    - always horizontal cc with notifs below
+    - music player in cc
+    - widgets in cc
+    - etc, etc, etc.
 
 
 landscape support
 prysm and bigsurcenter support
-
-Devices that i've checked sizing with: (two checks mean i've checked with the latest sizing and with the dynamic view)
-iPhone XR/iPhone 11 - irl & sim✅✅
-iPhone 11 Pro max/iPhone XS Max - sim ✅✅
-iPhone SE 1st gen - sim ✅✅
-iPhone 8/iPhone 7 - sim ✅✅
-iPhone 8+/iPhone 7+ - sim ✅✅
-iPhone X/iPhone XS/iPhone 11 Pro  - sim ✅✅
-iPhone 12 Pro Max - sim ✅✅
-iPhone 12/12 PRO - sim ✅✅
-iPhone 12 Mini - sim ✅✅
-iPhone SE 2020 - sim  ✅✅
-
-iOS Versions Checked With:
-iOS 13 - sim & irl:
-    Things I know that work:
-    - pinching the switcher✅
-    - the size of the view is correct✅
-    - getting the bundle id of the current switcher item✅
-    - notifications(everything)✅
-    - Control center ✅
-iOS 14.3 - irl ✅
