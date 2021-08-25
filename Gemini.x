@@ -31,6 +31,7 @@ BOOL showNoOlderNotifications;
 BOOL autoScrollToNotifs;
 BOOL reduceAnimations;
 BOOL showAllAppNotifications;
+BOOL onlyPinchIfNotifications;
 
 //cc prefs
 BOOL hasCustomControlCenterModules;
@@ -1035,6 +1036,9 @@ BOOL dismissingMusicModule;
         mainSwitcherVC.geminiAdditionalView.transform = CGAffineTransformMakeScale(0.1,0.1);
     }
     if(arg1 == 2 && automaticallyPinchSwitcher) {
+        if(onlyPinchIfNotifications && additionalViewSelection == 1) {
+            return;
+        }
         if(@available(iOS 14, *)) {
             if([[mainSwitcherVC valueForKey:@"_appLayouts"] count] > 0) {
                 [mainSwitcherVC handlePinch:nil];
@@ -1143,7 +1147,21 @@ BOOL dismissingMusicModule;
 
                 if([mainSwitcherVC bundleIdentifierIsInCenterOfSwitcher:identifier]) {
                     mainSwitcherVC.currentIdentifier = identifier;
-                    
+                    if(automaticallyPinchSwitcher && onlyPinchIfNotifications && additionalViewSelection == 1) {
+                        if(!mainSwitcherVC.notificationRequests) {
+                            mainSwitcherVC.notificationRequests = [NSMutableDictionary dictionary];
+                            [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+                        }
+                        if([mainSwitcherVC.notificationRequests[mainSwitcherVC.currentIdentifier] count] > 0) {
+                            UIPinchGestureRecognizer *gesture = [[UIPinchGestureRecognizer alloc] initWithTarget:nil action:nil];
+                            gesture.scale = 0.75f;
+                            [mainSwitcherVC handlePinch:gesture];                        }
+                        else {
+                            UIPinchGestureRecognizer *gesture = [[UIPinchGestureRecognizer alloc] initWithTarget:nil action:nil];
+                            gesture.scale = 1.0f;
+                            [mainSwitcherVC handlePinch:gesture];
+                        }
+                    }
                     [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
                     
                     appLayout.geminiIsShowingNotifs = YES;
@@ -1171,6 +1189,23 @@ BOOL dismissingMusicModule;
     NSString *identifier = displayItem.bundleIdentifier;
     
     mainSwitcherVC.currentIdentifier = identifier;
+    if(automaticallyPinchSwitcher && onlyPinchIfNotifications && additionalViewSelection == 1) {
+        if(!mainSwitcherVC.notificationRequests) {
+            mainSwitcherVC.notificationRequests = [NSMutableDictionary dictionary];
+            [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
+        }
+        if([mainSwitcherVC.notificationRequests[mainSwitcherVC.currentIdentifier] count] > 0) {
+            UIPinchGestureRecognizer *gesture = [[UIPinchGestureRecognizer alloc] initWithTarget:nil action:nil];
+            gesture.scale = 0.75f;
+            [mainSwitcherVC handlePinch:gesture];
+        }
+        else {
+            UIPinchGestureRecognizer *gesture = [[UIPinchGestureRecognizer alloc] initWithTarget:nil action:nil];
+            gesture.scale = 1.0f;
+            [mainSwitcherVC handlePinch:gesture];
+        }
+    }
+    
     appLayout.geminiIsShowingNotifs = YES;
     [mainSwitcherVC insertNotificationsForBundleIdentifier:mainSwitcherVC.currentIdentifier];
 }
@@ -1296,7 +1331,7 @@ static void loadPrefs(){
     customYOffset = prefs[@"customYOffset"] ? [prefs[@"customYOffset"] floatValue] : 0.0f;
     customSwitcherOffset = prefs[@"customSwitcherOffset"] ? [prefs[@"customSwitcherOffset"] floatValue] : 0.0f;
     clipSwitcherBounds = prefs[@"clipSwitcherBounds"] ? [prefs[@"clipSwitcherBounds"] boolValue] : NO;
-
+    
     if(additionalViewSelection == 2) {
         //notif prefs
         showNoOlderNotifications  = prefs[@"dynamic_showNoOlderNotifications"] ? [prefs[@"dynamic_showNoOlderNotifications"] boolValue] : NO;
@@ -1315,6 +1350,7 @@ static void loadPrefs(){
         //autoScrollToNotifs  = prefs[@"autoScrollToNotifs"] ? [prefs[@"autoScrollToNotifs"] boolValue] : NO;
         reduceAnimations  = prefs[@"reduceAnimations"] ? [prefs[@"reduceAnimations"] boolValue] : NO;
         showAllAppNotifications  = prefs[@"showAllAppNotifications"] ? [prefs[@"showAllAppNotifications"] boolValue] : NO;
+        onlyPinchIfNotifications = prefs[@"onlyPinchIfNotifications"] ? [prefs[@"onlyPinchIfNotifications"] boolValue] : NO;
         
         //cc prefs
         hasCustomControlCenterModules = prefs[@"hasCustomControlCenterModules"] ? [prefs[@"hasCustomControlCenterModules"] boolValue] : NO;

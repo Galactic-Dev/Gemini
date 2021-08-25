@@ -128,6 +128,51 @@
                 </dict>
             </array>
 		</dict>
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>enabled</key>
+            <true/>
+            <key>footerText</key>
+            <string></string>
+        </dict>
+        <dict>
+            <key>PostNotification</key>
+            <string>com.galacticdev.geminiprefs.changed</string>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>cellClass</key>
+            <string>GMNSwitchWithInfoCell</string>
+            <key>defaults</key>
+            <string>com.galacticdev.geminiprefs</string>
+            <key>enabled</key>
+            <true/>
+            <key>label</key>
+            <string>Only Pinch For Notifications</string>
+            <key>key</key>
+            <string>onlyPinchIfNotifications</string>
+            <key>default</key>
+            <false/>
+            <key>infoTitle</key>
+            <string>Only Pinch For Notifications</string>
+            <key>infoIcon</key>
+            <string>rectangle.and.arrow.up.right.and.arrow.down.left</string>
+            <key>isInfoIconSystemImage</key>
+            <true/>
+            <key>infoBulletItems</key>
+            <array>
+                <dict>
+                    <key>title</key>
+                    <string></string>
+                    <key>description</key>
+                    <string>If Auto Pinch Switcher is enabled, this will only automatically pinch the switcher if the currently focused app has notifications.</string>
+                    <key>image</key>
+                    <string>smallcircle.fill.circle</string>
+                    <key>isSystemImage</key>
+                    <true/>
+                </dict>
+            </array>
+        </dict>
 	</array>
 	<key>title</key>
 	<string>Notification Options</string>
