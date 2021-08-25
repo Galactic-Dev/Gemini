@@ -33,14 +33,10 @@ For Next Update:
 - quick action buttons in switcher
 - grid or linear switcher option
 - swipe up from left/right/center to access different additional view selections
-- make additional view go above switcher instead of below ✅
 - ccsupport home controls support *(kind of fixed now only disappears in gemini's cc)
 - fix dynamic view centering on some devices *
 - tap anywhere to dismiss crash *
    https://pastebin.com/W8x2HqDs - tweak list 1
-- "if its set to notifications and there are no notifications, have it go to normal size only show the pinched view if there are notifs, this is with auto pinch on"✅
-- clips switcher to bounds ✅
--- make this a toggle? ^✅
 
 
 - whole new feature set to customize the control center, not just the app switcher.
