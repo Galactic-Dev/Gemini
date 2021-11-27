@@ -210,3 +210,8 @@ struct CCUILayoutSize {
 
 @interface GeminiSwitcherView : UIView
 @end
+
+
+@interface SpringBoard : UIApplication
+-(void)_returnToHomescreenWithCompletion:(id)arg1;
+@end

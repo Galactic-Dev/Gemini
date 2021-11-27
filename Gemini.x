@@ -1246,9 +1246,12 @@ BOOL dismissingMusicModule;
 %hook SBMainSwitcherWindow
 -(id)_hitTest:(CGPoint)arg1 withEvent:(id)arg2 windowServerHitTestWindow:(id)arg3 {
     if(tapAnywhereToDismiss) {
-        if([arg3 isKindOfClass:%c(SBHomeScreenWindow)]) {
-            [mainSwitcherVC dismissMainSwitcherNoninteractivelyAnimated:YES];
-            return self;
+        if([arg3 isKindOfClass:%c(SBHomeScreenWindow)] && (arg1.x < mainSwitcherVC.view.frame.origin.x || arg1.x > (mainSwitcherVC.view.frame.size.width + mainSwitcherVC.view.frame.origin.x) )) {
+            dispatch_async(dispatch_get_main_queue(),
+            ^{
+                [(SpringBoard *)[UIApplication sharedApplication] _returnToHomescreenWithCompletion:nil];
+            });
+            return %orig;
         }
     }
     return %orig;
